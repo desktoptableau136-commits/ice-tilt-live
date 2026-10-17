@@ -16,9 +16,9 @@ This opens http://127.0.0.1:8765 in your browser. It needs Python 3 and nothing 
 ## What's on the dashboard
 
 - Pick any date and game. Live games refresh every 5 seconds.
-- **Ice Tilt meter:** the official two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in), plus a **2 / 5 / 10 minute comparison**. The verdict line points out when the short and long windows disagree.
+- **Ice Tilt meter:** the official two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in), plus **5 and 10 minute** comparison boxes. The verdict line points out when the short and long windows disagree.
 - **Rink:** where the events of the last two minutes happened, in team colors, with a dashed line marking the average position of play over those two minutes.
-- **Tilt over the game:** a timeline of the tilt with goals and power plays marked.
+- **Tilt over the game:** a timeline of the 2 min tilt (shaded) with 5 min (solid) and 10 min (dashed) lines you can toggle, plus goals and power plays.
   - Hover a goal for the scorer, assists, strength, score and the tilt just before it. Click it to open the NHL highlight video.
   - Drag across the chart, or use the arrow keys, to rewind. **Replay game** plays the whole game back.
 - **Team logos** on the scoreboard, game list, tilt meter and at center ice. Goal hovers show the **scorer's headshot**. Both come from the NHL's own image server.

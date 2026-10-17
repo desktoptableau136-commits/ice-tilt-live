@@ -83,7 +83,7 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 .meter .fill { position: absolute; top: 0; bottom: 0; transition: left .6s, width .6s; }
 .meter .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--ink); transform: translateX(-1px); }
 .meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
-.windows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.windows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .win { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 8px; display: grid; gap: 3px; min-width: 0; }
 .win.official { border-color: var(--boards); }
 .win .wl { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
@@ -101,6 +101,12 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 @keyframes blink { 50% { opacity: .3; } }
 
 #chartbox { position: relative; }
+.linetoggles { display: inline-flex; gap: 6px; margin-left: auto; }
+.linetoggles + .btn.small { margin-left: 0; }
+.ltog { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--ink); }
+.ltog:hover { border-color: var(--boards); }
+.ltog[aria-pressed="false"] { opacity: .45; }
+.ltog[aria-pressed="false"] svg { visibility: hidden; }
 .cellflex { display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; }
 th:first-child .cellflex, td:first-child .cellflex { justify-content: flex-start; }
 .tblogo { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; }
@@ -315,7 +321,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
         <div class="meter"><div class="half" id="meterL"></div><div class="half" id="meterR"></div><div class="fill" id="meterFill"></div><div class="mid"></div></div>
         <div class="meter-labels"><span id="mlL">←</span><span>Even</span><span id="mlR">→</span></div>
       </div>
-      <div class="windows" id="windows" aria-label="Ice Tilt over the last 2, 5 and 10 minutes"></div>
+      <div class="windows" id="windows" aria-label="Ice Tilt over the last 5 and 10 minutes"></div>
       <p class="status"><span class="dot" id="dot"></span><span id="status">Not loaded</span></p>
     </section>
   </div>
@@ -324,6 +330,10 @@ tr.total td { font-weight: 500; border-bottom: none; }
     <div class="panel-head">
       <h2 id="chartTitle">Tilt over the game</h2>
       <span class="hint" id="chartLegend"></span>
+      <span class="linetoggles" role="group" aria-label="Longer-window lines">
+        <button class="ltog" id="tog300" type="button" aria-pressed="true"><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>5 min</button>
+        <button class="ltog" id="tog600" type="button" aria-pressed="true"><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>10 min</button>
+      </span>
       <button class="btn small" id="replayBtn" type="button">&#9654; Replay game</button>
     </div>
     <div id="chartbox"><svg id="chart" tabindex="0" aria-label="Ice Tilt timeline. Drag, or use the arrow keys, to rewind. Escape returns to live."></svg><div class="tip" id="tip" role="tooltip" hidden></div></div>
@@ -626,6 +636,9 @@ tr.total td { font-weight: 500; border-bottom: none; }
   /* ---------- render ---------- */
   let colors = ["#7A8793", "#4C6A85"];
   let hovered = null;
+  const LINES_KEY = "icetilt.lines";
+  let showLines = { 300: true, 600: true };
+  try { const v = JSON.parse(localStorage.getItem(LINES_KEY) || "null"); if (v) showLines = Object.assign(showLines, v); } catch (e) {}
   let scrub = null;      // {n, s}: period number and seconds elapsed being viewed; null = live
   let lastA = null, geo = null, playing = null;
   function moment(a) {
@@ -722,15 +735,17 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const f = $("meterFill"); f.style.left = (m.tilt >= 0 ? 50 : 50 - w) + "%"; f.style.width = w + "%"; f.style.background = lead ? lc : "transparent";
     // 2 / 5 / 10 minute comparison (each restarts with the period, like the official stat)
     const avgAt = (w) => { if (!per || !m.now || !per.pre) return 0; const k = Math.min(m.now, w); return (per.pre[m.now] - per.pre[m.now - k]) / k; };
-    const W = [{ w: 120, label: "2 min", note: "Official" }, { w: 300, label: "5 min" }, { w: 600, label: "10 min" }];
+    const W = [{ w: 300, label: "Last 5 min" }, { w: 600, label: "Last 10 min" }];
     const wbox = $("windows"); wbox.textContent = "";
     const vals = W.map((x) => Math.round(avgAt(x.w) * 100));
     W.forEach((x, i) => {
       const v = vals[i], tm = v > 0 ? home : v < 0 ? away : null, col = v > 0 ? cH : v < 0 ? cA : "var(--muted)";
-      const cell = document.createElement("div"); cell.className = "win" + (i === 0 ? " official" : "");
+      const cell = document.createElement("div"); cell.className = "win";
       const l = document.createElement("div"); l.className = "wl";
       const l1 = document.createElement("span"); l1.textContent = x.label;
-      const l2 = document.createElement("span"); l2.textContent = x.note || "";
+      const l2 = document.createElement("span");
+      l2.innerHTML = x.w === 300 ? '<svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>' : '<svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>';
+      l2.title = "Line style on the chart";
       l.append(l1, l2);
       const val = document.createElement("div"); val.className = "wv"; val.style.color = col;
       if (tm) { const src = logoFor(tm); if (src) { const im = document.createElement("img"); im.src = src; im.alt = ""; im.onerror = () => im.remove(); val.append(im); } }
@@ -747,7 +762,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
       wbox.append(cell);
     });
     // when the short and long windows disagree, say so
-    const [v2, v5, v10] = vals;
+    const v2 = t, [v5, v10] = vals;
     const longV = per && m.now >= 300 ? (m.now >= 600 ? v10 : v5) : null;
     const longLabel = per && m.now >= 600 ? "10" : "5";
     if (longV != null && Math.abs(v2) >= 10 && Math.abs(longV) >= 10 && Math.sign(v2) !== Math.sign(longV)) {
@@ -843,6 +858,19 @@ tr.total td { font-weight: 500; border-bottom: none; }
       el("path", { d: path, fill: cA, "fill-opacity": ".55", stroke: cA, "stroke-width": 1, "clip-path": "url(#cBot)" });
     }
     el("line", { class: "zero", x1: padL, x2: W - padR, y1: ys(0), y2: ys(0) });
+    // longer windows as lines over the 2 min area; each restarts with the period
+    [[300, null], [600, "5 3"]].forEach(([w, dash]) => {
+      if (!showLines[w]) return;
+      let dd = "";
+      nums.forEach((n) => {
+        const per = a.P[n]; if (!per || !per.pre || per.step.length < 2) return;
+        for (let k = 1; k <= per.step.length; k++) {
+          const span = Math.min(k, w), v = (per.pre[k] - per.pre[k - span]) / span;
+          dd += (k === 1 ? "M" : "L") + xs(starts[n] + k).toFixed(1) + " " + ys(v).toFixed(1);
+        }
+      });
+      if (dd) el("path", { d: dd, fill: "none", stroke: "var(--ink)", "stroke-width": w === 300 ? 1.6 : 1.4, "stroke-dasharray": dash || "none", "stroke-linejoin": "round", opacity: .85 });
+    });
     a.nums.forEach((n) => a.P[n].goals.forEach((gl) => {
       const x = xs(starts[n] + gl.t), col = gl.home ? cH : cA;
       const cy = gl.home ? padT - 6 : H - padB + 2;
@@ -871,7 +899,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     geo = { padL, padR, W, total, starts, nums, lenOf, xs };
     updateCursor();
     if (reshow) reshow(); else if (hovered) hideTip();
-    $("chartLegend").textContent = "Above the line favors " + a.d.homeTeam.abbrev + ", below favors " + a.d.awayTeam.abbrev;
+    $("chartLegend").textContent = "Shaded = 2 min · up favors " + a.d.homeTeam.abbrev + ", down " + a.d.awayTeam.abbrev;
   }
 
   function updateCursor() {
@@ -1014,6 +1042,16 @@ tr.total td { font-weight: 500; border-bottom: none; }
   };
 
   /* ---------- controls ---------- */
+  [300, 600].forEach((w) => {
+    const b = $("tog" + w);
+    b.setAttribute("aria-pressed", String(!!showLines[w]));
+    b.onclick = () => {
+      showLines[w] = !showLines[w];
+      b.setAttribute("aria-pressed", String(showLines[w]));
+      try { localStorage.setItem(LINES_KEY, JSON.stringify(showLines)); } catch (e) {}
+      if (lastA) renderChart(lastA);
+    };
+  });
   function dashboard() { return matchMedia("(min-width: 1000px) and (min-height: 600px)").matches; }
   function setHow(open) {
     $("how").classList.toggle("open", open);
