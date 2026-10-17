@@ -15,7 +15,7 @@ This opens http://127.0.0.1:8765 in your browser. It needs Python 3 and nothing 
 
 ## What's on the dashboard
 
-- Pick any date and game. Live games refresh every 10 seconds.
+- Pick any date and game. Live games refresh every 5 seconds.
 - **Ice Tilt meter:** a two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in) and each team's territorial share.
 - **Rink:** where the events of the last two minutes happened, in team colors.
 - **Tilt over the game:** a timeline of the tilt with goals and power plays marked.
