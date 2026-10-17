@@ -95,6 +95,13 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 @keyframes blink { 50% { opacity: .3; } }
 
 #chartbox { position: relative; }
+.tlogo { width: 52px; height: 52px; object-fit: contain; flex: none; }
+.mlogo { width: 44px; height: 44px; object-fit: contain; align-self: center; }
+.game .m { display: flex; align-items: center; gap: 4px; }
+.game .glogo { width: 20px; height: 20px; object-fit: contain; flex: none; }
+.tip.with-photo { grid-template-columns: 64px minmax(0, 1fr); column-gap: 12px; align-items: start; max-width: 340px; }
+.tip-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--ice); border: 2px solid currentColor; }
+.tip-body { display: grid; gap: 1px; min-width: 0; }
 .delaybox { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
 .delaybox select { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: var(--surface); color: var(--ink); font: inherit; }
 .delaybox.on select { border-color: var(--focus); color: var(--focus); font-weight: 600; }
@@ -158,6 +165,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   .side { padding: 6px 14px; }
   .score { font-size: 36px; }
   .clock { font-size: 24px; }
+  .tlogo { width: 44px; height: 44px; }
   .centerbox { padding: 6px 18px; }
   .panel { padding: 10px 14px; gap: 8px; overflow: hidden; display: flex; flex-direction: column; }
   .panel > * { flex: none; }
@@ -230,6 +238,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   <section class="board" aria-label="Scoreboard">
     <div class="side away">
       <span class="swatch" id="swA"></span>
+      <img class="tlogo" id="logoA" alt="" hidden>
       <div><div class="tname" id="nameA">—</div><div class="tsub" id="subA"></div></div>
       <div class="score" id="scoreA">0</div>
     </div>
@@ -240,6 +249,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     <div class="side home">
       <div class="score" id="scoreH">0</div>
       <div><div class="tname" id="nameH">—</div><div class="tsub" id="subH"></div></div>
+      <img class="tlogo" id="logoH" alt="" hidden>
       <span class="swatch" id="swH"></span>
     </div>
   </section>
@@ -263,6 +273,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
         <line class="blue" x1="125" y1="0" x2="125" y2="85" stroke-width="1.2"></line>
         <line class="red" x1="100" y1="0" x2="100" y2="85" stroke-width="1.2"></line>
         <circle class="blue" cx="100" cy="42.5" r="15" fill="none" stroke-width=".4"></circle>
+        <image id="centerLogo" x="88" y="30.5" width="24" height="24" opacity=".22" preserveAspectRatio="xMidYMid meet" style="display:none"></image>
         <g fill="none" stroke-width=".4" class="red">
           <circle cx="31" cy="20.5" r="15"></circle><circle cx="31" cy="64.5" r="15"></circle>
           <circle cx="169" cy="20.5" r="15"></circle><circle cx="169" cy="64.5" r="15"></circle>
@@ -288,7 +299,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
         <span class="eyebrow" id="meterMode">2-min rolling</span>
         <button class="btn small" id="backLive" type="button" hidden>Back to live</button>
       </div>
-      <div class="tiltnum"><span class="abbr" id="tiltAbbr"></span><span class="big" id="tiltBig">0</span><span class="pill" id="tiltPill">Even</span></div>
+      <div class="tiltnum"><img class="mlogo" id="tiltLogo" alt="" hidden><span class="abbr" id="tiltAbbr"></span><span class="big" id="tiltBig">0</span><span class="pill" id="tiltPill">Even</span></div>
       <p class="verdict" id="verdict">Waiting for game data.</p>
       <div>
         <div class="meter"><div class="half" id="meterL"></div><div class="half" id="meterR"></div><div class="fill" id="meterFill"></div><div class="mid"></div></div>
@@ -371,6 +382,17 @@ tr.total td { font-weight: 500; border-bottom: none; }
   const hex = (c) => "#" + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
   const lum = (h) => { const [r, g, b] = rgb(h).map((v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
   const mix = (h, t, a) => { const c = rgb(h), d = rgb(t); return hex(c.map((v, i) => v + (d[i] - v) * a)); };
+  // team logos come in light and dark versions; pick the one for the current theme
+  function logoFor(t) {
+    if (!t || !t.logo) return null;
+    return dark() ? (t.darkLogo || t.logo.replace("_light.svg", "_dark.svg")) : t.logo;
+  }
+  function setImg(img, src) {
+    if (!src) { img.hidden = true; img.removeAttribute("src"); return; }
+    img.onerror = () => { img.hidden = true; };
+    if (img.getAttribute("src") !== src) img.src = src;
+    img.hidden = false;
+  }
   function readable(h) {
     // keep team colors legible on both themes
     if (dark()) { const L = lum(h); return L < .06 ? mix(h, "#ffffff", .45) : L < .12 ? mix(h, "#ffffff", .25) : h; }
@@ -462,7 +484,12 @@ tr.total td { font-weight: 500; border-bottom: none; }
       b.setAttribute("aria-pressed", String(String(g.id) === gameId));
       const m = document.createElement("span"); m.className = "m";
       const sc = g.awayTeam.score != null && !hideScore ? "  " + g.awayTeam.score + "–" + g.homeTeam.score : "";
-      m.textContent = g.awayTeam.abbrev + " @ " + g.homeTeam.abbrev + sc;
+      const chipLogo = (t) => { const src = logoFor(t); if (!src) return null; const i = document.createElement("img"); i.className = "glogo"; i.alt = ""; i.src = src; i.onerror = () => i.remove(); return i; };
+      const la = chipLogo(g.awayTeam), lh = chipLogo(g.homeTeam);
+      if (la) m.append(la);
+      m.append(document.createTextNode(g.awayTeam.abbrev + " @ "));
+      if (lh) m.append(lh);
+      m.append(document.createTextNode(g.homeTeam.abbrev + sc));
       const st = hideScore ? { text: "Live · syncing to TV delay", live: true } : gameStatus(g);
       const s = document.createElement("span"); s.className = "s" + (st.live ? " live" : ""); s.textContent = st.text;
       b.append(m, s);
@@ -516,6 +543,8 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const P = {};
     const cur = d.periodDescriptor || { number: 1, periodType: "REG" };
     const names = {};
+    const heads = {};
+    (d.rosterSpots || []).forEach((r) => { if (r.headshot) heads[r.playerId] = r.headshot; });
     (d.rosterSpots || []).forEach((r) => { names[r.playerId] = ((r.firstName && r.firstName.default) || "") + " " + ((r.lastName && r.lastName.default) || ""); });
     const who = (id, total) => id ? (names[id] || "Unknown player").trim() + (total ? " (" + total + ")" : "") : null;
     for (const p of plays) {
@@ -531,6 +560,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
         per.goals.push({
           t, home: isHome,
           scorer: who(det.scoringPlayerId, det.scoringPlayerTotal),
+          photo: heads[det.scoringPlayerId] || null,
           assists: [who(det.assist1PlayerId, det.assist1PlayerTotal), who(det.assist2PlayerId, det.assist2PlayerTotal)].filter(Boolean),
           shot: det.shotType || "",
           away: det.awayScore, homeScore: det.homeScore,
@@ -603,6 +633,10 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const [cA, cH] = colors;
     const nm = (t) => (t.commonName && t.commonName.default) || (t.name && t.name.default) || t.abbrev;
     $("swA").style.background = cA; $("swH").style.background = cH;
+    setImg($("logoA"), logoFor(away)); setImg($("logoH"), logoFor(home));
+    $("logoA").alt = nm(away) + " logo"; $("logoH").alt = nm(home) + " logo";
+    const cl = $("centerLogo"), cls = logoFor(home);
+    if (cls) { cl.setAttribute("href", cls); cl.style.display = ""; } else cl.style.display = "none";
     $("nameA").textContent = away.abbrev; $("nameH").textContent = home.abbrev;
     $("subA").textContent = nm(away) + (away.sog != null ? " · " + away.sog + " SOG" : "");
     $("subH").textContent = (home.sog != null ? home.sog + " SOG · " : "") + nm(home);
@@ -656,6 +690,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const t = Math.round(m.tilt * 100);
     const lead = t > 0 ? home : t < 0 ? away : null, lc = t > 0 ? cH : t < 0 ? cA : "var(--ink)";
     $("tiltAbbr").textContent = lead ? lead.abbrev : ""; $("tiltAbbr").style.color = lc;
+    setImg($("tiltLogo"), lead ? logoFor(lead) : null); $("tiltLogo").alt = lead ? nm(lead) + " logo" : "";
     $("tiltBig").textContent = Math.abs(t); $("tiltBig").style.color = lc;
     const pill = $("tiltPill"); pill.textContent = label(t); pill.style.color = lead && Math.abs(t) >= 10 ? lc : "var(--muted)";
     const other = lead === home ? away : home;
@@ -824,7 +859,15 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const tip = $("tip"), [cA, cH] = colors;
     const A = a.d.awayTeam.abbrev, Hm = a.d.homeTeam.abbrev, team = gl.home ? Hm : A, col = gl.home ? cH : cA;
     tip.textContent = "";
-    const line = (txt, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = txt; tip.append(d); return d; };
+    tip.classList.toggle("with-photo", !!gl.photo);
+    let body = tip;
+    if (gl.photo) {
+      const img = document.createElement("img"); img.className = "tip-photo"; img.alt = ""; img.src = gl.photo; img.style.color = col;
+      img.onerror = () => { img.remove(); tip.classList.remove("with-photo"); };
+      body = document.createElement("div"); body.className = "tip-body";
+      tip.append(img, body);
+    }
+    const line = (txt, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = txt; body.append(d); return d; };
     const head = line("Goal · " + team + (gl.strength ? " · " + gl.strength : ""), "tip-head"); head.style.color = col;
     line(gl.scorer || "Scorer not listed", "tip-name");
     line(gl.assists.length ? "Assists: " + gl.assists.join(", ") : "Unassisted");
@@ -944,7 +987,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   let rt;
   if (window.ResizeObserver) new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { if (lastData) renderChart(analyze(lastData)); }, 100); }).observe($("chartbox"));
   window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (lastData) renderChart(analyze(lastData)); }, 150); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (lastData) render(analyze(lastData)); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderGames(); if (lastData) render(analyze(lastData)); });
 
   loadGames();
   setInterval(() => { if (!games.length) loadGames(); }, 30000);
