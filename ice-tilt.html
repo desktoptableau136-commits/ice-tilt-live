@@ -1,0 +1,838 @@
+<title>Ice Tilt Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: scoreboard strip on top, rink (input) beside the tilt meter, timeline chart full-width, then period table and the explainer. */
+:root {
+  --ice: #EEF3F7;
+  --surface: #FFFFFF;
+  --rink: #F9FCFE;
+  --ink: #0F1F2C;
+  --muted: #586A78;
+  --line: #D3DEE6;
+  --boards: #9FB2C1;
+  --rink-red: #C8102E;
+  --rink-blue: #1C4E9E;
+  --focus: #1C4E9E;
+  --team-a: #C8102E;
+  --team-b: #1C4E9E;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ice: #0C151D; --surface: #13202B; --rink: #172734; --ink: #E4ECF2; --muted: #8C9FAE;
+    --line: #243747; --boards: #3F5668; --rink-red: #E2495E; --rink-blue: #5D8EDB; --focus: #7FA8EA;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ice: #0C151D; --surface: #13202B; --rink: #172734; --ink: #E4ECF2; --muted: #8C9FAE;
+  --line: #243747; --boards: #3F5668; --rink-red: #E2495E; --rink-blue: #5D8EDB; --focus: #7FA8EA;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ice); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 56px;
+  display: grid; gap: 20px;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; font-weight: 600; color: var(--muted); }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; margin: 0; text-wrap: balance; line-height: 1.05; }
+h1 { font-size: 30px; letter-spacing: .01em; }
+h2 { font-size: 24px; }
+h3 { font-size: 18px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.top p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 8px 14px; font-weight: 500;
+}
+.btn:hover { border-color: var(--boards); }
+.btn.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.btn.small { padding: 5px 10px; font-size: 13px; }
+
+.banner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  border: 1px dashed var(--boards); border-radius: 8px; padding: 10px 14px; background: var(--surface); font-size: 14px;
+}
+
+/* Scoreboard */
+.board {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.side { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-width: 0; }
+.side.b { justify-content: flex-end; text-align: right; }
+.swatch { width: 10px; align-self: stretch; border-radius: 3px; flex: none; }
+.tname { font-family: var(--f-display); font-size: 22px; font-weight: 700; line-height: 1; overflow-wrap: anywhere; }
+.tsub { font-size: 12px; color: var(--muted); }
+.score { font-family: var(--f-display); font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.goalbtns { display: flex; gap: 4px; }
+.centerbox { display: grid; justify-items: center; align-content: center; gap: 4px; padding: 10px 18px; border-inline: 1px solid var(--line); }
+.clock { font-family: var(--f-mono); font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+.periods { display: flex; gap: 2px; }
+.periods button { border: 1px solid var(--line); background: transparent; padding: 2px 8px; font-size: 12px; border-radius: 4px; font-family: var(--f-display); font-weight: 600; letter-spacing: .05em; }
+.periods button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+/* Main grid */
+.main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+.rinkbox { padding: 10px 6px; overflow: hidden; }
+#rink { width: 100%; height: auto; display: block; touch-action: none; cursor: crosshair; transition: transform .9s cubic-bezier(.2,.7,.2,1); transform-origin: 50% 50%; }
+#rink .surface { fill: var(--rink); }
+#rink .boards { fill: none; stroke: var(--boards); stroke-width: 1.4; }
+#rink .red { stroke: var(--rink-red); }
+#rink .blue { stroke: var(--rink-blue); }
+#rink .dotred { fill: var(--rink-red); }
+#rink .dotblue { fill: var(--rink-blue); }
+#rink text { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+#rink .puck { fill: var(--ink); }
+#rink .ring { fill: none; stroke: var(--ink); stroke-width: .5; opacity: .5; }
+@media (prefers-reduced-motion: no-preference) {
+  #rink .ring { animation: ping 1.6s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+}
+@keyframes ping { from { transform: scale(.6); opacity: .7; } to { transform: scale(2.2); opacity: 0; } }
+
+.zones { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.zones button { border: 1px solid var(--line); background: var(--ice); border-radius: 6px; padding: 8px 2px; font-size: 12px; line-height: 1.2; }
+.zones button kbd { display: block; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.play {
+  flex: 1 1 200px; border: none; border-radius: 8px; padding: 12px 16px; font-family: var(--f-display); font-size: 20px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  background: var(--ink); color: var(--surface);
+}
+.play.live { background: var(--rink-red); color: #fff; }
+.clockset { display: flex; gap: 4px; align-items: center; }
+.clockset input { width: 72px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; background: var(--surface); font-family: var(--f-mono); }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+kbd { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--ice); }
+
+/* Meter */
+.tiltnum { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tiltnum .big { font-family: var(--f-display); font-size: 76px; font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums; }
+.state-pill { display: inline-block; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; }
+.verdict { font-size: 16px; font-weight: 500; margin: 0; }
+.meter { position: relative; height: 34px; border-radius: 6px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); }
+.meter .half { opacity: .16; }
+.meter .fill { position: absolute; top: 0; bottom: 0; transition: left .5s, width .5s; }
+.meter .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--ink); transform: translateX(-1px); }
+.meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.shares { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.share { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.share .v { font-family: var(--f-display); font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.share .l { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.drift { font-size: 13px; color: var(--muted); margin: 0; min-height: 1.5em; }
+
+/* Chart */
+#chartbox { width: 100%; min-width: 0; }
+#chart { display: block; width: 100%; }
+#chart text { font-family: var(--f-body); fill: var(--muted); font-size: 11px; }
+#chart .grid { stroke: var(--line); stroke-width: 1; }
+#chart .zero { stroke: var(--ink); stroke-width: 1; opacity: .5; }
+#chart .sep { stroke: var(--boards); stroke-dasharray: 3 3; }
+#chart .now { stroke: var(--ink); stroke-width: 1.5; }
+
+/* Table */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--muted); font-weight: 600; }
+td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+tr.total td { font-weight: 500; border-bottom: none; }
+
+/* Explainer */
+.explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; }
+.explain article { display: grid; gap: 8px; align-content: start; }
+.explain p, .explain li { margin: 0; max-width: 65ch; }
+.explain ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.scale { display: grid; gap: 4px; font-size: 14px; }
+.scale div { display: grid; grid-template-columns: 70px 1fr; gap: 10px; }
+.scale b { font-family: var(--f-mono); font-weight: 500; }
+.sources { font-size: 13px; color: var(--muted); }
+.sources a { color: inherit; }
+
+/* Setup */
+.setup { display: grid; gap: 14px; }
+.setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.setup fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 8px; margin: 0; min-width: 0; }
+.setup legend { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; padding: 0 4px; }
+.setup label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+.setup input[type=text], .setup select { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--ice); color: var(--ink); width: 100%; }
+.setup input[type=color] { width: 56px; height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: var(--ice); }
+.row2 { display: grid; grid-template-columns: 1fr 90px 64px; gap: 8px; align-items: end; }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+
+@media (max-width: 880px) {
+  .main { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .board { grid-template-columns: 1fr 1fr; }
+  .centerbox { grid-column: 1 / -1; grid-row: 1; border-inline: none; border-bottom: 1px solid var(--line); flex-direction: row; }
+  .score { font-size: 36px; }
+  .tname { font-size: 18px; }
+  .side { padding: 10px 12px; gap: 8px; }
+  .tiltnum .big { font-size: 60px; }
+  .zones button { font-size: 11px; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Follow-along tracker</div>
+      <h1>Ice Tilt Tracker</h1>
+      <p>Tap where the play is as you watch. The tracker turns it into a two-minute rolling Ice Tilt, the same window the NHL and AWS use for the broadcast stat.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="flipBtn" type="button" title="Mirror the rink so it matches your TV">Flip rink</button>
+      <button class="btn primary" id="newBtn" type="button">New game</button>
+    </div>
+  </header>
+
+  <div class="banner" id="sampleBanner" hidden>
+    <span><strong>This is a sample game</strong> so you can see how the chart reads. Your own tracking starts with New game.</span>
+    <button class="btn small" id="sampleNew" type="button">Set up my game</button>
+  </div>
+
+  <section class="panel setup" id="setup" hidden aria-labelledby="setupTitle">
+    <h2 id="setupTitle">Set up a game</h2>
+    <div class="setup-grid">
+      <fieldset>
+        <legend>Team A</legend>
+        <div class="row2">
+          <label for="aName">Name<input type="text" id="aName" maxlength="28" value="Home"></label>
+          <label for="aAbbr">Short<input type="text" id="aAbbr" maxlength="4" value="HOM"></label>
+          <label for="aColor">Color<input type="color" id="aColor" value="#c8102e"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Team B</legend>
+        <div class="row2">
+          <label for="bName">Name<input type="text" id="bName" maxlength="28" value="Away"></label>
+          <label for="bAbbr">Short<input type="text" id="bAbbr" maxlength="4" value="AWY"></label>
+          <label for="bColor">Color<input type="color" id="bColor" value="#1c4e9e"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Overtime</legend>
+        <label for="otLen">Length
+          <select id="otLen">
+            <option value="300">5:00 (regular season)</option>
+            <option value="1200">20:00 (playoffs)</option>
+          </select>
+        </label>
+      </fieldset>
+    </div>
+    <div class="confirm" id="setupConfirm">
+      <button class="btn primary" id="startBtn" type="button">Start tracking</button>
+      <button class="btn" id="cancelSetup" type="button">Cancel</button>
+      <span class="hint" id="setupWarn"></span>
+    </div>
+  </section>
+
+  <section class="board" aria-label="Scoreboard">
+    <div class="side a">
+      <span class="swatch" id="swA"></span>
+      <div style="min-width:0">
+        <div class="tname" id="nameA">Home</div>
+        <div class="goalbtns">
+          <button class="btn small" id="goalA" type="button" title="Add goal (G)">+ Goal</button>
+          <button class="btn small" id="undoA" type="button" title="Remove last goal">−</button>
+        </div>
+      </div>
+      <div class="score" id="scoreA">0</div>
+    </div>
+    <div class="centerbox">
+      <div class="clock" id="clock" aria-live="off">20:00</div>
+      <div class="periods" id="periods" role="group" aria-label="Period"></div>
+    </div>
+    <div class="side b">
+      <div class="score" id="scoreB">0</div>
+      <div style="min-width:0">
+        <div class="tname" id="nameB">Away</div>
+        <div class="goalbtns" style="justify-content:flex-end">
+          <button class="btn small" id="undoB" type="button" title="Remove last goal">−</button>
+          <button class="btn small" id="goalB" type="button" title="Add goal (H)">+ Goal</button>
+        </div>
+      </div>
+      <span class="swatch" id="swB"></span>
+    </div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-labelledby="rinkTitle">
+      <div class="panel-head">
+        <h2 id="rinkTitle">Where is the play?</h2>
+        <span class="hint">Tap or drag on the ice</span>
+      </div>
+      <div class="rinkbox">
+        <svg id="rink" viewBox="-4 -6 208 97" role="img" aria-label="Rink. Tap to set where the play is.">
+          <defs><clipPath id="rinkClip"><rect x="0" y="0" width="200" height="85" rx="28"></rect></clipPath></defs>
+          <rect class="surface" x="0" y="0" width="200" height="85" rx="28"></rect>
+          <g clip-path="url(#rinkClip)">
+            <rect id="zoneL" x="0" y="0" width="75" height="85" opacity=".09"></rect>
+            <rect id="zoneR" x="125" y="0" width="75" height="85" opacity=".09"></rect>
+            <line class="red" x1="11" y1="0" x2="11" y2="85" stroke-width=".4"></line>
+            <line class="red" x1="189" y1="0" x2="189" y2="85" stroke-width=".4"></line>
+          </g>
+          <line class="blue" x1="75" y1="0" x2="75" y2="85" stroke-width="1.2"></line>
+          <line class="blue" x1="125" y1="0" x2="125" y2="85" stroke-width="1.2"></line>
+          <line class="red" x1="100" y1="0" x2="100" y2="85" stroke-width="1.2"></line>
+          <circle class="blue" cx="100" cy="42.5" r="15" fill="none" stroke-width=".4"></circle>
+          <circle class="dotblue" cx="100" cy="42.5" r=".9"></circle>
+          <g fill="none" stroke-width=".4" class="red">
+            <circle cx="31" cy="20.5" r="15"></circle><circle cx="31" cy="64.5" r="15"></circle>
+            <circle cx="169" cy="20.5" r="15"></circle><circle cx="169" cy="64.5" r="15"></circle>
+            <path d="M11 36.5 a6 6 0 0 1 0 12"></path><path d="M189 36.5 a6 6 0 0 0 0 12"></path>
+          </g>
+          <g class="dotred">
+            <circle cx="31" cy="20.5" r="1"></circle><circle cx="31" cy="64.5" r="1"></circle>
+            <circle cx="169" cy="20.5" r="1"></circle><circle cx="169" cy="64.5" r="1"></circle>
+            <circle cx="80" cy="20.5" r="1"></circle><circle cx="80" cy="64.5" r="1"></circle>
+            <circle cx="120" cy="20.5" r="1"></circle><circle cx="120" cy="64.5" r="1"></circle>
+          </g>
+          <text id="lblL" x="37.5" y="5.2" font-size="3.6" text-anchor="middle"></text>
+          <text id="lblR" x="162.5" y="5.2" font-size="3.6" text-anchor="middle"></text>
+          <text x="100" y="82" font-size="3" text-anchor="middle" fill="var(--muted)">Neutral zone</text>
+          <rect class="boards" x="0" y="0" width="200" height="85" rx="28"></rect>
+          <g id="puckG" transform="translate(100 42.5)">
+            <circle class="ring" r="3"></circle>
+            <circle class="puck" r="2.4"></circle>
+          </g>
+        </svg>
+      </div>
+      <div class="zones" id="zones"></div>
+      <div class="controls">
+        <button class="play" id="playBtn" type="button">Puck drop</button>
+        <div class="clockset">
+          <label for="clockIn" class="hint">Sync clock</label>
+          <input id="clockIn" type="text" inputmode="numeric" placeholder="mm:ss" aria-label="Game clock, minutes and seconds">
+          <button class="btn small" id="clockSet" type="button">Set</button>
+        </div>
+      </div>
+      <p class="hint">Keys: <kbd>Space</kbd> puck drop / whistle · <kbd>1</kbd>–<kbd>5</kbd> zones left to right · <kbd>←</kbd> <kbd>→</kbd> nudge · <kbd>G</kbd> / <kbd>H</kbd> goal for Team A / Team B</p>
+    </section>
+
+    <section class="panel" aria-labelledby="meterTitle">
+      <div class="panel-head">
+        <h2 id="meterTitle">Ice Tilt now</h2>
+        <span class="eyebrow">2-min rolling</span>
+      </div>
+      <div class="tiltnum">
+        <span class="big" id="tiltBig">0</span>
+        <span class="state-pill" id="tiltPill">Even</span>
+      </div>
+      <p class="verdict" id="verdict">Play is even.</p>
+      <div>
+        <div class="meter" id="meter">
+          <div class="half" id="meterL"></div><div class="half" id="meterR"></div>
+          <div class="fill" id="meterFill"></div>
+          <div class="mid"></div>
+        </div>
+        <div class="meter-labels"><span id="mlL">← Away</span><span>Even</span><span id="mlR">Home →</span></div>
+      </div>
+      <div class="shares">
+        <div class="share"><div class="v" id="shareA">50%</div><div class="l" id="shareAl">Home territorial share</div></div>
+        <div class="share"><div class="v" id="shareB">50%</div><div class="l" id="shareBl">Away territorial share</div></div>
+      </div>
+      <p class="drift" id="drift"></p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="chartTitle">
+    <div class="panel-head">
+      <h2 id="chartTitle">Tilt over the game</h2>
+      <span class="hint" id="chartLegend"></span>
+    </div>
+    <div id="chartbox"><svg id="chart" role="img" aria-label="Ice Tilt timeline"></svg></div>
+  </section>
+
+  <section class="panel" aria-labelledby="tableTitle">
+    <h2 id="tableTitle">By period</h2>
+    <div class="tablewrap"><table id="ptable"></table></div>
+    <p class="hint">Zone time uses the blue lines: play past a blue line counts as that team's offensive zone time.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="whatTitle">
+    <h2 id="whatTitle">Understanding Ice Tilt</h2>
+    <div class="explain">
+      <article>
+        <h3>What the NHL stat is</h3>
+        <p>Ice Tilt is an NHL EDGE IQ stat built with AWS. The league's tracking system records every skater, goalie and the puck about 100 times a second. Ice Tilt averages where everyone is on the ice over a rolling two-minute window, so it answers one question: which team is playing in the other team's end right now, and by how much.</p>
+        <p>During stoppages the official number slowly drifts back toward neutral. It appears in broadcast graphics, but the league does not publish it as a stat you can look up, which is why you only find articles about it.</p>
+      </article>
+      <article>
+        <h3>What this tracker does</h3>
+        <p>You act as the tracking system. Each second the clock runs, the tracker records where you last placed the play. It then applies the same two-minute rolling average, resets it each period, and lets it drift to neutral while the whistle is blown.</p>
+        <p>One position from you is coarser than twelve tracked bodies, so the size of these numbers won't match a broadcast graphic. The direction and the swings will. The NHL hasn't published its exact scale.</p>
+      </article>
+      <article>
+        <h3>How to read the number</h3>
+        <div class="scale">
+          <div><b>0–9</b><span>Even. Play is trading ends.</span></div>
+          <div><b>10–24</b><span>Leaning. One team is winning more battles.</span></div>
+          <div><b>25–44</b><span>Tilted. Sustained pressure, often after a few won draws or an icing.</span></div>
+          <div><b>45+</b><span>Hemmed in. The defending team can't get it out. Watch for a goal or a tired line.</span></div>
+        </div>
+        <p>A positive number in the chart favors the team on top of the chart (Team A). The territorial share is the same number shown as a split of the ice: +30 means a 65 / 35 split.</p>
+      </article>
+      <article>
+        <h3>Things to watch for</h3>
+        <ul>
+          <li>Tilt often flips right after a goal. A team that is ahead tends to sit back, so the trailing team's tilt climbs. Analysts call this score effects.</li>
+          <li>Tilt is not shots. A team can carry a big tilt and still lose the shot count if the defense keeps everything to the outside.</li>
+          <li>Power plays tilt the ice heavily by design. Note them so you don't read a man-advantage as momentum.</li>
+          <li>Long stretches above 30 near the end of a shift usually mean the defending line is stuck on the ice.</li>
+        </ul>
+      </article>
+    </div>
+    <p class="sources">Method sources: <a href="https://aws.amazon.com/blogs/media/aws-and-nhl-unveil-new-ice-tilt-stat-to-measure-team-momentum-during-the-game/" target="_blank" rel="noopener">AWS and NHL unveil Ice Tilt</a> · <a href="https://www.nhl.com/nhl-edge/glossary" target="_blank" rel="noopener">NHL EDGE glossary</a></p>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const KEY = "icetilt.v1";
+  const WINDOW = 120;          // seconds in the rolling average (NHL/AWS use two minutes)
+  const DRIFT_HALF = 25;       // seconds for a stopped-play tilt to halve toward neutral
+  const ZONE_X = [-0.75, -0.4, 0, 0.4, 0.75]; // screen positions for keys 1-5 (left to right)
+
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } },
+    set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  /* ---------- state ---------- */
+  function freshState(teams, otLen) {
+    return {
+      v: 1, sample: false,
+      teams: teams,
+      otLen: otLen || 300,
+      period: 1, clock: 1200, running: false,
+      x: 0, y: 42.5,
+      samples: { 1: [], 2: [], 3: [], 4: [] },
+      goals: [],
+      flipped: false,
+    };
+  }
+
+  function sampleState() {
+    let seed = 20261016;
+    const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const s = freshState([
+      { name: "Home", abbr: "HOM", color: "#c8102e" },
+      { name: "Away", abbr: "AWY", color: "#1c4e9e" },
+    ], 300);
+    s.sample = true;
+    const bias = { 1: 0.12, 2: -0.22, 3: 0.28 };
+    for (let p = 1; p <= 3; p++) {
+      let x = 0, target = 0, hold = 0;
+      for (let e = 0; e < 1200; e++) {
+        if (hold-- <= 0) { target = Math.max(-0.95, Math.min(0.95, bias[p] + (rnd() * 2 - 1) * 0.85)); hold = 12 + Math.floor(rnd() * 30); }
+        x += (target - x) * 0.12 + (rnd() * 2 - 1) * 0.06;
+        x = Math.max(-1, Math.min(1, x));
+        s.samples[p].push(+x.toFixed(2));
+      }
+    }
+    s.goals = [{ team: 0, period: 1, e: 604 }, { team: 1, period: 2, e: 455 }, { team: 1, period: 2, e: 1012 }, { team: 0, period: 3, e: 731 }, { team: 0, period: 3, e: 1104 }];
+    s.period = 3; s.clock = 0; s.x = 0.4;
+    return s;
+  }
+
+  let state = store.get();
+  if (!state || state.v !== 1) state = sampleState();
+  let stoppedAt = performance.now();
+  let stoppedTilt = null;
+
+  const periodLen = (p) => (p === 4 ? state.otLen : 1200);
+  const periodName = (p) => ["", "1st", "2nd", "3rd", "OT"][p];
+  const elapsed = () => periodLen(state.period) - state.clock;
+  const fmt = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const save = () => { if (!state.sample) store.set(state); };
+
+  /* ---------- tilt math ---------- */
+  function rollingSeries(p) {
+    const s = state.samples[p] || [];
+    const out = new Array(s.length);
+    let sum = 0;
+    for (let i = 0; i < s.length; i++) {
+      sum += s[i];
+      if (i >= WINDOW) sum -= s[i - WINDOW];
+      out[i] = sum / Math.min(i + 1, WINDOW);
+    }
+    return out;
+  }
+  function currentRolling() {
+    const r = rollingSeries(state.period);
+    return r.length ? r[r.length - 1] : 0;
+  }
+  function liveTilt() {
+    const r = currentRolling();
+    if (state.running || state.sample) return r;
+    const secs = (performance.now() - stoppedAt) / 1000;
+    return r * Math.pow(0.5, secs / DRIFT_HALF);
+  }
+  function label(t) {
+    const a = Math.abs(t);
+    if (a < 10) return "Even";
+    if (a < 25) return "Leaning";
+    if (a < 45) return "Tilted";
+    return "Hemmed in";
+  }
+
+  /* ---------- clock ---------- */
+  let last = performance.now(), acc = 0;
+  function stepSecond() {
+    const p = state.period, e = elapsed();
+    const arr = state.samples[p] || (state.samples[p] = []);
+    while (arr.length < e) arr.push(state.x);
+    arr[e] = +state.x.toFixed(3);
+    arr.length = e + 1;
+    state.clock -= 1;
+    if (state.clock <= 0) { state.clock = 0; setRunning(false); }
+  }
+  setInterval(() => {
+    const now = performance.now();
+    const dt = (now - last) / 1000; last = now;
+    let stepped = false;
+    if (state.running) {
+      acc += dt;
+      while (acc >= 1 && state.running) { acc -= 1; stepSecond(); stepped = true; }
+    }
+    if (stepped) { renderAll(); save(); } else renderLive();
+  }, 200);
+
+  let wakeLock = null;
+  function setRunning(on) {
+    if (state.sample) return;
+    if (on && state.clock <= 0) return;
+    state.running = on;
+    acc = 0; last = performance.now();
+    if (!on) stoppedAt = performance.now();
+    if (on && navigator.wakeLock && !wakeLock) {
+      navigator.wakeLock.request("screen").then((l) => { wakeLock = l; l.addEventListener("release", () => { wakeLock = null; }); }).catch(() => {});
+    }
+    save(); renderAll();
+  }
+
+  /* ---------- input ---------- */
+  function setPos(screenX, y) {
+    if (state.sample) { showSampleNudge(); return; }
+    screenX = Math.max(-1, Math.min(1, screenX));
+    state.x = state.flipped ? -screenX : screenX;
+    if (y != null) state.y = Math.max(3, Math.min(82, y));
+    renderPuck(); save();
+  }
+  const rink = $("rink");
+  function rinkPoint(ev) {
+    const pt = rink.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const m = rink.getScreenCTM();
+    if (!m) return null;
+    return pt.matrixTransform(m.inverse());
+  }
+  let dragging = false;
+  rink.addEventListener("pointerdown", (ev) => {
+    dragging = true; rink.setPointerCapture(ev.pointerId);
+    const p = rinkPoint(ev); if (p) setPos((p.x - 100) / 100, p.y);
+  });
+  rink.addEventListener("pointermove", (ev) => {
+    if (!dragging) return;
+    const p = rinkPoint(ev); if (p) setPos((p.x - 100) / 100, p.y);
+  });
+  rink.addEventListener("pointerup", () => { dragging = false; });
+  rink.addEventListener("pointercancel", () => { dragging = false; });
+
+  function screenX() { return state.flipped ? -state.x : state.x; }
+
+  document.addEventListener("keydown", (ev) => {
+    const tag = (ev.target && ev.target.tagName) || "";
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+    if (ev.code === "Space") { ev.preventDefault(); setRunning(!state.running); return; }
+    if (/^[1-5]$/.test(ev.key)) { setPos(ZONE_X[+ev.key - 1], null); return; }
+    if (ev.key === "ArrowLeft") { ev.preventDefault(); setPos(screenX() - 0.1, null); return; }
+    if (ev.key === "ArrowRight") { ev.preventDefault(); setPos(screenX() + 0.1, null); return; }
+    const k = ev.key.toLowerCase();
+    if (k === "g") addGoal(0);
+    if (k === "h") addGoal(1);
+  });
+
+  function addGoal(team) {
+    if (state.sample) { showSampleNudge(); return; }
+    state.goals.push({ team, period: state.period, e: elapsed() });
+    if (state.running) setRunning(false); else { save(); renderAll(); }
+  }
+  function undoGoal(team) {
+    if (state.sample) { showSampleNudge(); return; }
+    for (let i = state.goals.length - 1; i >= 0; i--) {
+      if (state.goals[i].team === team) { state.goals.splice(i, 1); break; }
+    }
+    save(); renderAll();
+  }
+  $("goalA").onclick = () => addGoal(0);
+  $("goalB").onclick = () => addGoal(1);
+  $("undoA").onclick = () => undoGoal(0);
+  $("undoB").onclick = () => undoGoal(1);
+  $("playBtn").onclick = () => { if (state.sample) { showSampleNudge(); return; } setRunning(!state.running); };
+  $("flipBtn").onclick = () => { state.flipped = !state.flipped; save(); renderAll(); };
+
+  $("clockSet").onclick = () => {
+    if (state.sample) { showSampleNudge(); return; }
+    const m = /^(\d{1,2})(?::(\d{1,2}))?$/.exec($("clockIn").value.trim());
+    if (!m) { $("clockIn").value = ""; $("clockIn").placeholder = "e.g. 14:32"; return; }
+    let secs = m[2] === undefined ? +m[1] * 60 : +m[1] * 60 + +m[2];
+    secs = Math.max(0, Math.min(periodLen(state.period), secs));
+    const arr = state.samples[state.period];
+    const newE = periodLen(state.period) - secs;
+    if (arr.length > newE) arr.length = newE;
+    else while (arr.length < newE) arr.push(state.x);
+    state.clock = secs; $("clockIn").value = "";
+    save(); renderAll();
+  };
+
+  function selectPeriod(p) {
+    if (state.sample) { showSampleNudge(); return; }
+    if (state.running) setRunning(false);
+    state.period = p;
+    state.clock = periodLen(p) - (state.samples[p] || []).length;
+    state.x = 0; state.y = 42.5;
+    save(); renderAll();
+  }
+
+  /* ---------- setup ---------- */
+  function openSetup() {
+    $("setup").hidden = false;
+    $("setupWarn").textContent = state.sample ? "" : "Starting a new game replaces the one you're tracking.";
+    $("aName").focus();
+  }
+  $("newBtn").onclick = openSetup;
+  $("sampleNew").onclick = openSetup;
+  $("cancelSetup").onclick = () => { $("setup").hidden = true; };
+  const autoAbbr = (src, dst) => $(src).addEventListener("input", () => { $(dst).value = $(src).value.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase(); });
+  autoAbbr("aName", "aAbbr"); autoAbbr("bName", "bAbbr");
+  $("startBtn").onclick = () => {
+    const t = (n) => ({
+      name: $(n + "Name").value.trim() || (n === "a" ? "Home" : "Away"),
+      abbr: ($(n + "Abbr").value.trim() || (n === "a" ? "HOM" : "AWY")).toUpperCase(),
+      color: $(n + "Color").value,
+    });
+    state = freshState([t("a"), t("b")], +$("otLen").value);
+    stoppedAt = performance.now();
+    $("setup").hidden = true;
+    save(); renderAll();
+  };
+  function showSampleNudge() {
+    const b = $("sampleBanner");
+    b.animate && b.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 300 });
+  }
+
+  /* ---------- render ---------- */
+  const A = () => state.teams[0], B = () => state.teams[1];
+
+  function renderPuck() {
+    const sx = screenX();
+    $("puckG").setAttribute("transform", "translate(" + (100 + sx * 100).toFixed(1) + " " + state.y.toFixed(1) + ")");
+  }
+
+  function renderStatic() {
+    document.documentElement.style.setProperty("--team-a", A().color);
+    document.documentElement.style.setProperty("--team-b", B().color);
+    $("swA").style.background = A().color; $("swB").style.background = B().color;
+    $("nameA").textContent = A().name; $("nameB").textContent = B().name;
+    $("sampleBanner").hidden = !state.sample;
+    // Team A attacks right unless flipped.
+    const right = state.flipped ? B() : A(), left = state.flipped ? A() : B();
+    $("zoneR").setAttribute("fill", right.color); $("zoneL").setAttribute("fill", left.color);
+    $("lblR").textContent = right.abbr + " attacking →"; $("lblR").setAttribute("fill", right.color);
+    $("lblL").textContent = "← " + left.abbr + " attacking"; $("lblL").setAttribute("fill", left.color);
+    $("meterL").style.background = left.color; $("meterR").style.background = right.color;
+    $("mlL").textContent = "← " + left.abbr; $("mlR").textContent = right.abbr + " →";
+    $("shareAl").textContent = A().name + " territorial share";
+    $("shareBl").textContent = B().name + " territorial share";
+    $("chartLegend").textContent = "Above the line favors " + A().abbr + ", below favors " + B().abbr;
+    const names = ["Deep left", "Left blue line", "Neutral", "Right blue line", "Deep right"];
+    const z = $("zones");
+    if (!z.childElementCount) {
+      names.forEach((n, i) => {
+        const b = document.createElement("button"); b.type = "button";
+        b.innerHTML = "<kbd>" + (i + 1) + "</kbd>";
+        b.append(document.createTextNode(n));
+        b.onclick = () => setPos(ZONE_X[i], 42.5);
+        z.append(b);
+      });
+    }
+    const per = $("periods"); per.textContent = "";
+    [1, 2, 3, 4].forEach((p) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.textContent = periodName(p);
+      b.setAttribute("aria-pressed", String(state.period === p));
+      b.onclick = () => selectPeriod(p);
+      per.append(b);
+    });
+    $("scoreA").textContent = state.goals.filter((g) => g.team === 0).length;
+    $("scoreB").textContent = state.goals.filter((g) => g.team === 1).length;
+    $("flipBtn").setAttribute("aria-pressed", String(!!state.flipped));
+  }
+
+  function renderLive() {
+    $("clock").textContent = fmt(state.clock);
+    const pb = $("playBtn");
+    pb.textContent = state.running ? "Whistle" : (state.clock <= 0 ? "Period over" : "Puck drop");
+    pb.classList.toggle("live", state.running);
+    pb.disabled = !state.running && state.clock <= 0 && !state.sample;
+    const raw = liveTilt();
+    const t = Math.round(raw * 100);
+    const lead = t > 0 ? A() : t < 0 ? B() : null;
+    const big = $("tiltBig");
+    big.textContent = (t > 0 ? "+" : "") + t;
+    big.style.color = lead ? lead.color : "var(--ink)";
+    const pill = $("tiltPill");
+    pill.textContent = label(t);
+    pill.style.color = lead && Math.abs(t) >= 10 ? lead.color : "var(--muted)";
+    const v = Math.abs(t) < 10 ? "Play is even. Neither team is controlling territory."
+      : Math.abs(t) < 25 ? lead.name + " are getting more of the play."
+      : Math.abs(t) < 45 ? lead.name + " are tilting the ice. Sustained pressure in the " + (lead === A() ? B() : A()).abbr + " end."
+      : lead.name + " have them hemmed in.";
+    $("verdict").textContent = v;
+    const shareA = Math.round(50 + t / 2);
+    $("shareA").textContent = shareA + "%"; $("shareB").textContent = (100 - shareA) + "%";
+    $("shareA").style.color = A().color; $("shareB").style.color = B().color;
+    // meter: right side = team attacking right on the rink
+    const sideVal = state.flipped ? -raw : raw;
+    const fill = $("meterFill");
+    const w = Math.min(50, Math.abs(sideVal) * 50);
+    fill.style.left = (sideVal >= 0 ? 50 : 50 - w) + "%";
+    fill.style.width = w + "%";
+    fill.style.background = lead ? lead.color : "transparent";
+    // tilt the rink itself: the attacked end sinks
+    $("rink").style.transform = "rotate(" + (sideVal * 7).toFixed(2) + "deg)";
+    let d = "";
+    if (state.sample) d = "Sample game, final.";
+    else if (!state.running && state.clock > 0 && Math.abs(currentRolling()) > 0.02) d = "Play stopped. Tilt is drifting back toward neutral, like the broadcast stat.";
+    else if (!state.running && state.clock > 0) d = "Clock stopped. Press Puck drop or Space when play starts.";
+    else if (state.running) d = "Tracking " + periodName(state.period) + " period. Window: last " + Math.min(WINDOW, elapsed() + 1) + " s of play.";
+    else d = "End of the " + periodName(state.period) + ". Pick the next period above the clock.";
+    $("drift").textContent = d;
+  }
+
+  function renderChart() {
+    const box = $("chartbox");
+    const W = Math.max(300, box.clientWidth || 600);
+    const H = W < 500 ? 220 : 280;
+    const padL = 34, padR = 10, padT = 22, padB = 26;
+    const maxP = Math.max(3, state.period, state.samples[4] && state.samples[4].length ? 4 : 0);
+    const lens = []; for (let p = 1; p <= maxP; p++) lens.push(periodLen(p));
+    const total = lens.reduce((a, b) => a + b, 0);
+    const xs = (sec) => padL + (sec / total) * (W - padL - padR);
+    const ys = (v) => padT + (1 - (v + 1) / 2) * (H - padT - padB);
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = $("chart");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("height", H);
+    svg.textContent = "";
+    const el = (tag, attrs, text) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.append(e); return e; };
+
+    const defs = el("defs", {});
+    const mk = (id, y, h) => { const c = document.createElementNS(ns, "clipPath"); c.id = id; const r = document.createElementNS(ns, "rect"); r.setAttribute("x", 0); r.setAttribute("y", y); r.setAttribute("width", W); r.setAttribute("height", h); c.append(r); defs.append(c); };
+    mk("cTop", 0, ys(0)); mk("cBot", ys(0), H);
+
+    [-1, -0.5, 0.5, 1].forEach((v) => {
+      el("line", { class: "grid", x1: padL, x2: W - padR, y1: ys(v), y2: ys(v) });
+    });
+    [[1, "+100"], [0.5, "+50"], [0, "0"], [-0.5, "−50"], [-1, "−100"]].forEach(([v, t]) => el("text", { x: padL - 6, y: ys(v) + 4, "text-anchor": "end" }, t));
+
+    let off = 0, pathD = "";
+    for (let p = 1; p <= maxP; p++) {
+      const r = rollingSeries(p);
+      if (r.length) {
+        let d = "M" + xs(off).toFixed(1) + " " + ys(0).toFixed(1);
+        for (let i = 0; i < r.length; i++) d += "L" + xs(off + i + 1).toFixed(1) + " " + ys(r[i]).toFixed(1);
+        d += "L" + xs(off + r.length).toFixed(1) + " " + ys(0).toFixed(1) + "Z";
+        pathD += d;
+      }
+      if (p > 1) el("line", { class: "sep", x1: xs(off), x2: xs(off), y1: padT - 6, y2: H - padB });
+      el("text", { x: xs(off + lens[p - 1] / 2), y: H - 8, "text-anchor": "middle" }, periodName(p));
+      off += lens[p - 1];
+    }
+    if (pathD) {
+      el("path", { d: pathD, fill: A().color, "fill-opacity": ".55", stroke: A().color, "stroke-width": "1", "clip-path": "url(#cTop)" });
+      el("path", { d: pathD, fill: B().color, "fill-opacity": ".55", stroke: B().color, "stroke-width": "1", "clip-path": "url(#cBot)" });
+    }
+    el("line", { class: "zero", x1: padL, x2: W - padR, y1: ys(0), y2: ys(0) });
+    el("text", { x: padL + 4, y: padT - 8, fill: A().color, style: "fill:" + A().color + ";font-weight:600" }, A().abbr + " tilt ↑");
+
+    // goals
+    const startOf = (p) => lens.slice(0, p - 1).reduce((a, b) => a + b, 0);
+    state.goals.forEach((g) => {
+      if (g.period > maxP) return;
+      const x = xs(startOf(g.period) + g.e);
+      const team = state.teams[g.team];
+      const top = g.team === 0;
+      el("line", { x1: x, x2: x, y1: top ? padT - 4 : ys(0), y2: top ? ys(0) : H - padB + 2, stroke: team.color, "stroke-width": "1.5", "stroke-dasharray": "2 2" });
+      el("circle", { cx: x, cy: top ? padT - 6 : H - padB + 2, r: 4.5, fill: team.color });
+    });
+    // now marker
+    if (!state.sample) {
+      const nx = xs(startOf(state.period) + elapsed());
+      el("line", { class: "now", x1: nx, x2: nx, y1: padT - 6, y2: H - padB });
+    }
+    el("text", { x: W - padR, y: padT - 8, "text-anchor": "end" }, "● goal");
+  }
+
+  function renderTable() {
+    const maxP = Math.max(3, state.period);
+    const rows = [];
+    const tot = { n: 0, sum: 0, oa: 0, nz: 0, ob: 0 };
+    for (let p = 1; p <= maxP; p++) {
+      const s = state.samples[p] || [];
+      let sum = 0, oa = 0, nz = 0, ob = 0;
+      s.forEach((x) => { sum += x; if (x > 0.25) oa++; else if (x < -0.25) ob++; else nz++; });
+      tot.n += s.length; tot.sum += sum; tot.oa += oa; tot.nz += nz; tot.ob += ob;
+      const ga = state.goals.filter((g) => g.period === p && g.team === 0).length;
+      const gb = state.goals.filter((g) => g.period === p && g.team === 1).length;
+      rows.push([periodName(p), s.length, sum, oa, nz, ob, ga + "–" + gb]);
+    }
+    const ga = state.goals.filter((g) => g.team === 0).length, gb = state.goals.length - ga;
+    const sign = (v) => (v > 0 ? "+" : "") + v;
+    const fmtRow = (r) => r[1] ? [r[0], fmt(r[1]), sign(Math.round((r[2] / r[1]) * 100)), fmt(r[3]), fmt(r[4]), fmt(r[5]), r[6]] : [r[0], "—", "—", "—", "—", "—", r[6]];
+    const t = $("ptable"); t.textContent = "";
+    const head = ["Period", "Tracked", "Avg tilt", A().abbr + " zone", "Neutral", B().abbr + " zone", "Goals"];
+    const tr = document.createElement("tr");
+    head.forEach((h) => { const th = document.createElement("th"); th.textContent = h; tr.append(th); });
+    const thead = document.createElement("thead"); thead.append(tr); t.append(thead);
+    const tb = document.createElement("tbody");
+    rows.map(fmtRow).concat([fmtRow(["Game", tot.n, tot.sum, tot.oa, tot.nz, tot.ob, ga + "–" + gb])]).forEach((r, i, all) => {
+      const row = document.createElement("tr"); if (i === all.length - 1) row.className = "total";
+      r.forEach((c) => { const td = document.createElement("td"); td.textContent = c; row.append(td); });
+      tb.append(row);
+    });
+    t.append(tb);
+  }
+
+  function renderAll() { renderStatic(); renderPuck(); renderLive(); renderChart(); renderTable(); }
+
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderChart, 120); });
+  if (state.running) { state.running = false; } // a reload pauses the clock; press Puck drop to resume
+  renderAll();
+})();
+</script>
