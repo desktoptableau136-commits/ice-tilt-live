@@ -474,7 +474,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     }
     renderGames();
     if (!gameId || !games.some((g) => String(g.id) === gameId)) {
-      const pick = games.find((g) => g.gameState === "LIVE" || g.gameState === "CRIT") || games.find((g) => /FINAL|OFF/.test(g.gameState)) || games[0];
+      const pick = games.find((g) => g.gameState === "LIVE" || g.gameState === "CRIT") || games.filter((g) => /FINAL|OFF/.test(g.gameState)).pop() || games[0];
       if (pick && !gameId) gameId = String(pick.id);
     }
     if (gameId) loadGame();
