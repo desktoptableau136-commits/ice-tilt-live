@@ -22,7 +22,7 @@ This opens http://127.0.0.1:8765 in your browser. It needs Python 3 and nothing 
   - Hover a goal for the scorer, assists, strength, score and the tilt just before it. Click it to open the NHL highlight video.
   - Drag across the chart, or use the arrow keys, to rewind. **Replay game** plays the whole game back.
 - **By period:** average tilt, offensive-zone events, shots and goals for each period.
-- **TV delay** (top bar, 15 s by default) holds the feed back so it doesn't run ahead of your broadcast. It delays the game list scores too, so nothing gets spoiled. Pick Off, or 10–60 s to match your provider. Your choice is remembered.
+- **TV delay** (top bar, off by default) holds the feed back so it doesn't run ahead of your broadcast. It delays the game list scores too, so nothing gets spoiled. Set it to 10–60 s to match your provider. Your choice is remembered.
 - On laptop and desktop windows it fits on one screen. Narrow windows get a scrolling layout.
 
 ## How the number is made

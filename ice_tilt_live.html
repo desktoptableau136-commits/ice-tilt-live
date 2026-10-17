@@ -389,7 +389,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   let lastData = null, lastFetch = 0, timer = null, games = [];
   // TV delay: keep recent feed snapshots and show the newest one at least `delay` seconds old
   const DELAY_KEY = "icetilt.delay";
-  let delay = 15;
+  let delay = 0;
   try { const v = localStorage.getItem(DELAY_KEY); if (v !== null && !isNaN(+v)) delay = +v; } catch (e) {}
   let pbpBuf = [], scoreBuf = [], shownSnap = null, latestState = null;
   function pushSnap(buf, item) {
