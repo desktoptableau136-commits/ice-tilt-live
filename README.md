@@ -8,11 +8,13 @@ A live Ice Tilt dashboard for any NHL game. It approximates the NHL/AWS "Ice Til
 python ice_tilt_live.py
 ```
 
-This opens http://127.0.0.1:8765 in your browser. It needs Python 3 and nothing else. Press Ctrl+C to stop.
+This opens http://127.0.0.1:8765 in your browser. Phones and tablets on the same Wi-Fi can open the address printed in the terminal, like `http://192.168.x.x:8765/`. It needs Python 3 and nothing else. Press Ctrl+C to stop.
 
+- The first time, allow Python through Windows Firewall on **Private** networks. On Public networks, like hotels and cafés, Windows keeps blocking other devices.
+- `python ice_tilt_live.py --local` makes it work on this computer only
 - `python ice_tilt_live.py 9000` runs it on a different port
 - `python ice_tilt_live.py --no-browser` starts it without opening a browser
-- `python ice_tilt_live.py --lan` also lets phones and tablets on your home Wi-Fi open it. The terminal prints the address to use, like `http://192.168.x.x:8765/`. The first time, allow Python through Windows Firewall on **Private** networks. On a touch screen, tap a goal once for details and again for the highlight.
+- On a touch screen, tap a goal once for details and again for the highlight.
 
 ## What's on the dashboard
 

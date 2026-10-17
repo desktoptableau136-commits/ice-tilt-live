@@ -1,9 +1,9 @@
 """Ice Tilt Live: serves ice_tilt_live.html and relays the NHL's public game feed to it.
 
-Run:  python ice_tilt_live.py            (opens http://127.0.0.1:8765 in your browser)
+Run:  python ice_tilt_live.py            (opens http://127.0.0.1:8765 here; phones/tablets on your Wi-Fi can use the printed address)
+      python ice_tilt_live.py --local    (this computer only)
       python ice_tilt_live.py 9000       (use a different port)
       python ice_tilt_live.py --no-browser
-      python ice_tilt_live.py --lan          (also reachable from phones/tablets on your Wi-Fi)
 Stop: Ctrl+C
 """
 import json
@@ -91,7 +91,7 @@ def lan_ip():
 
 def main():
     port = next((int(a) for a in sys.argv[1:] if a.isdigit()), 8765)
-    lan = "--lan" in sys.argv
+    lan = "--local" not in sys.argv  # Wi-Fi devices allowed by default; --lan is still accepted
     server = ThreadingHTTPServer(("0.0.0.0" if lan else "127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
     print(f"Ice Tilt Live running at {url}  (Ctrl+C to stop)")
