@@ -3,11 +3,13 @@
 Run:  python ice_tilt_live.py            (opens http://127.0.0.1:8765 in your browser)
       python ice_tilt_live.py 9000       (use a different port)
       python ice_tilt_live.py --no-browser
+      python ice_tilt_live.py --lan          (also reachable from phones/tablets on your Wi-Fi)
 Stop: Ctrl+C
 """
 import json
 import pathlib
 import re
+import socket
 import sys
 import threading
 import time
@@ -75,11 +77,31 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+def lan_ip():
+    # the address other devices on the network use to reach this computer (no traffic is sent)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
 def main():
     port = next((int(a) for a in sys.argv[1:] if a.isdigit()), 8765)
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    lan = "--lan" in sys.argv
+    server = ThreadingHTTPServer(("0.0.0.0" if lan else "127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
     print(f"Ice Tilt Live running at {url}  (Ctrl+C to stop)")
+    if lan:
+        ip = lan_ip()
+        if ip:
+            print(f"On your iPad or phone (same Wi-Fi): http://{ip}:{port}/")
+        else:
+            print("Couldn't work out this computer's network address. Check ipconfig for the IPv4 address.")
+        print("If Windows asks about network access for Python, allow it on Private networks.")
     if "--no-browser" not in sys.argv:
         threading.Timer(0.6, webbrowser.open, args=(url,)).start()
     try:

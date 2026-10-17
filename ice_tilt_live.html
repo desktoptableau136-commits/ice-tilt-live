@@ -636,6 +636,12 @@ tr.total td { font-weight: 500; border-bottom: none; }
   /* ---------- render ---------- */
   let colors = ["#7A8793", "#4C6A85"];
   let hovered = null;
+  let lastPointer = "mouse";
+  document.addEventListener("pointerdown", (e) => {
+    lastPointer = e.pointerType || "mouse";
+    // a tap anywhere other than a goal closes its details
+    if (lastPointer === "touch" && !(e.target.closest && e.target.closest("#chart rect[tabindex]"))) hideTip();
+  }, true);
   const LINES_KEY = "icetilt.lines";
   let showLines = { 300: true, 600: true };
   try { const v = JSON.parse(localStorage.getItem(LINES_KEY) || "null"); if (v) showLines = Object.assign(showLines, v); } catch (e) {}
@@ -879,11 +885,17 @@ tr.total td { font-weight: 500; border-bottom: none; }
       const hit = el("rect", { x: x - 8, y: 0, width: 16, height: H, fill: "transparent", tabindex: 0, role: "button", "aria-label": goalLabel(a, n, gl), style: "cursor:" + (gl.clip ? "pointer" : "default") + ";outline:none" });
       const show = () => { hovered = { n, t: gl.t, home: gl.home }; showTip(a, n, gl, dot); };
       if (hovered && hovered.n === n && hovered.t === gl.t && hovered.home === gl.home) reshow = show;
-      hit.addEventListener("mouseenter", show); hit.addEventListener("focus", show);
+      // touch screens have no hover: first tap shows the details, second tap opens the highlight
+      hit.addEventListener("mouseenter", () => { if (lastPointer !== "touch") show(); }); hit.addEventListener("focus", () => { if (lastPointer !== "touch") show(); });
       hit.addEventListener("mouseleave", hideTip); hit.addEventListener("blur", hideTip);
+      if (!gl.clip) hit.addEventListener("click", () => { if (lastPointer === "touch") show(); });
       if (gl.clip) {
         const open = () => window.open(gl.clip, "_blank", "noopener");
-        hit.addEventListener("click", open);
+        hit.addEventListener("click", () => {
+          const showing = hovered && hovered.n === n && hovered.t === gl.t && hovered.home === gl.home && !$("tip").hidden;
+          if (lastPointer === "touch" && !showing) { show(); return; }
+          open();
+        });
         hit.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
       }
     }));
@@ -956,7 +968,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     if (gl.away != null) line("Score: " + A + " " + gl.away + "–" + gl.homeScore + " " + Hm);
     const tb = Math.round(gl.tiltBefore * 100);
     line("Tilt just before: " + (tb === 0 ? "Even" : (tb > 0 ? Hm : A) + " " + Math.abs(tb) + " (" + label(tb).toLowerCase() + ")"));
-    if (gl.clip) line("Click to watch the highlight", "tip-foot");
+    if (gl.clip) line(lastPointer === "touch" ? "Tap again to watch the highlight" : "Click to watch the highlight", "tip-foot");
     tip.hidden = false;
     const r = dot.getBoundingClientRect(), cx = r.left + r.width / 2, cyy = r.top + r.height / 2;
     const tw = tip.offsetWidth, th = tip.offsetHeight, vw = innerWidth, vh = innerHeight;
