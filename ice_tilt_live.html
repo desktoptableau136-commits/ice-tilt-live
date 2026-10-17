@@ -95,6 +95,12 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 @keyframes blink { 50% { opacity: .3; } }
 
 #chartbox { position: relative; }
+.cellflex { display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; }
+th:first-child .cellflex, td:first-child .cellflex { justify-content: flex-start; }
+.tblogo { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; }
+th .tblogo { width: 20px; height: 20px; }
+.rinkavg { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 1px 10px; border-radius: 999px; border: 1.5px solid currentColor; font-variant-numeric: tabular-nums; margin-right: auto; }
+.rinkavg:empty { display: none; }
 .tlogo { width: 52px; height: 52px; object-fit: contain; flex: none; }
 .mlogo { width: 44px; height: 44px; object-fit: contain; align-self: center; }
 .game .m { display: flex; align-items: center; gap: 4px; }
@@ -258,6 +264,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     <section class="panel" aria-labelledby="rinkTitle">
       <div class="panel-head">
         <h2 id="rinkTitle">The last two minutes</h2>
+        <span class="rinkavg" id="rinkAvg" title="Time-weighted average of where play was over these two minutes. Same number as the Ice Tilt meter."></span>
         <span class="hint" id="rinkHint">Events in the current window</span>
       </div>
       <svg id="rink" viewBox="-4 -6 208 97" role="img" aria-label="Rink showing recent events">
@@ -295,8 +302,8 @@ tr.total td { font-weight: 500; border-bottom: none; }
 
     <section class="panel" aria-labelledby="meterTitle">
       <div class="panel-head">
-        <h2 id="meterTitle">Ice Tilt now</h2>
-        <span class="eyebrow" id="meterMode">2-min rolling</span>
+        <h2 id="meterTitle">Ice Tilt</h2>
+        <span class="eyebrow" id="meterMode">Last 2 min of play</span>
         <button class="btn small" id="backLive" type="button" hidden>Back to live</button>
       </div>
       <div class="tiltnum"><img class="mlogo" id="tiltLogo" alt="" hidden><span class="abbr" id="tiltAbbr"></span><span class="big" id="tiltBig">0</span><span class="pill" id="tiltPill">Even</span></div>
@@ -680,6 +687,16 @@ tr.total td { font-weight: 500; border-bottom: none; }
         title.textContent = (e.home ? home.abbrev : away.abbrev) + " " + e.type.replace(/-/g, " ") + " at " + fmt(e.t);
         circ.append(title); g.append(circ);
       });
+      // average position of play over the window: tilt is avg x / 89 ft, so this is where the line goes
+      const t2 = Math.round(m.tilt * 100), avgCol = t2 > 0 ? cH : t2 < 0 ? cA : "var(--muted)";
+      const ax = 100 + m.tilt * 89;
+      const mk = (tag, at, txt) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt) e.textContent = txt; g.prepend(e); return e; };
+      mk("text", { x: ax, y: -1.6, "font-size": 3.2, "text-anchor": "middle", fill: avgCol }, "2-MIN AVG");
+      mk("path", { d: "M" + (ax - 1.6) + " 0.4 L" + (ax + 1.6) + " 0.4 L" + ax + " 2.6 Z", fill: avgCol });
+      mk("line", { x1: ax, x2: ax, y1: 1.5, y2: 83.5, stroke: avgCol, "stroke-width": .9, "stroke-dasharray": "2.2 1.4", opacity: .9 });
+      const ra = $("rinkAvg");
+      ra.textContent = "2-min avg " + (t2 === 0 ? "Even" : (t2 > 0 ? home.abbrev : away.abbrev) + " " + Math.abs(t2));
+      ra.style.color = avgCol;
       $("rinkHint").textContent = recent.length + " events in " + ord(per.num, per.type) + " " + fmt(Math.max(0, now - WINDOW)) + "–" + fmt(now);
     }
     const lg = $("legend"); lg.textContent = "";
@@ -717,8 +734,8 @@ tr.total td { font-weight: 500; border-bottom: none; }
       $("meterTitle").textContent = "Ice Tilt at " + ord(per.num, per.type) + " " + fmt(per.len - m.now);
       mode.textContent = "Score then " + away.abbrev + " " + ga + "–" + gh + " " + home.abbrev;
     } else {
-      $("meterTitle").textContent = a.final ? "Ice Tilt at the end" : "Ice Tilt now";
-      mode.textContent = "2-min rolling";
+      $("meterTitle").textContent = a.final ? "Ice Tilt at the end" : "Ice Tilt";
+      mode.textContent = "Last 2 min of play";
     }
     $("backLive").textContent = a.final ? "Back to end" : "Back to live";
     updateCursor();
@@ -887,13 +904,17 @@ tr.total td { font-weight: 500; border-bottom: none; }
   function hideTip() { hovered = null; $("tip").hidden = true; }
 
   function renderTable(a) {
-    const A = a.d.awayTeam.abbrev, H = a.d.homeTeam.abbrev;
+    const away = a.d.awayTeam, home = a.d.homeTeam, A = away.abbrev, H = home.abbrev;
     const t = $("ptable"); t.textContent = "";
-    const head = ["Period", "Avg tilt", A + " zone", H + " zone", "Shots", "Goals"];
-    const tr = document.createElement("tr"); head.forEach((h) => { const th = document.createElement("th"); th.textContent = h; tr.append(th); });
+    // a cell is text, or a list of text and team logos
+    const logo = (team) => { const src = logoFor(team); if (!src) return team.abbrev; const i = document.createElement("img"); i.className = "tblogo"; i.src = src; i.alt = team.abbrev; i.title = team.abbrev; i.onerror = () => i.replaceWith(team.abbrev); return i; };
+    const fill = (cell, c) => { if (Array.isArray(c)) { const w = document.createElement("span"); w.className = "cellflex"; c.forEach((x) => w.append(x)); cell.append(w); } else cell.textContent = c; };
+    const pair = (label) => [label + " ", logo(away), "–", logo(home)];
+    const head = ["Period", "Avg tilt", [logo(away), " zone"], [logo(home), " zone"], pair("Shots"), pair("Goals")];
+    const tr = document.createElement("tr"); head.forEach((h) => { const th = document.createElement("th"); fill(th, h); tr.append(th); });
     const th = document.createElement("thead"); th.append(tr); t.append(th);
     const tb = document.createElement("tbody");
-    const tilt = (v) => { const n = Math.round(v * 100); return n === 0 ? "Even" : (n > 0 ? H : A) + " " + Math.abs(n); };
+    const tilt = (v) => { const n = Math.round(v * 100); return n === 0 ? "Even" : [logo(n > 0 ? home : away), (n > 0 ? H : A) + " " + Math.abs(n)]; };
     const tot = { secs: 0, sum: 0, oz: [0, 0], sh: [0, 0], g: [0, 0] };
     const rows = a.nums.map((n) => {
       const p = a.P[n], g = [p.goals.filter((x) => !x.home).length, p.goals.filter((x) => x.home).length];
@@ -901,7 +922,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
       return [ord(n, p.type), p.step.length ? tilt(p.avg) : "—", p.oz[0], p.oz[1], p.shots[0] + "–" + p.shots[1], g[0] + "–" + g[1]];
     });
     rows.push(["Game", tot.secs ? tilt(tot.sum / tot.secs) : "—", tot.oz[0], tot.oz[1], tot.sh[0] + "–" + tot.sh[1], tot.g[0] + "–" + tot.g[1]]);
-    rows.forEach((r, i) => { const row = document.createElement("tr"); if (i === rows.length - 1) row.className = "total"; r.forEach((c) => { const td = document.createElement("td"); td.textContent = c; row.append(td); }); tb.append(row); });
+    rows.forEach((r, i) => { const row = document.createElement("tr"); if (i === rows.length - 1) row.className = "total"; r.forEach((c) => { const td = document.createElement("td"); fill(td, c); row.append(td); }); tb.append(row); });
     t.append(tb);
   }
 
