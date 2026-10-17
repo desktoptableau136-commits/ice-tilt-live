@@ -16,7 +16,7 @@ This opens http://127.0.0.1:8765 in your browser. It needs Python 3 and nothing 
 ## What's on the dashboard
 
 - Pick any date and game. Live games refresh every 5 seconds.
-- **Ice Tilt meter:** a two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in) and each team's territorial share.
+- **Ice Tilt meter:** the official two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in), plus a **2 / 5 / 10 minute comparison**. The verdict line points out when the short and long windows disagree.
 - **Rink:** where the events of the last two minutes happened, in team colors, with a dashed line marking the average position of play over those two minutes.
 - **Tilt over the game:** a timeline of the tilt with goals and power plays marked.
   - Hover a goal for the scorer, assists, strength, score and the tilt just before it. Click it to open the NHL highlight video.

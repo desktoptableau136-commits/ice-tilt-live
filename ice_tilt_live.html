@@ -83,10 +83,16 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 .meter .fill { position: absolute; top: 0; bottom: 0; transition: left .6s, width .6s; }
 .meter .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--ink); transform: translateX(-1px); }
 .meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
-.shares { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.share { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-.share .v { font-family: var(--f-display); font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.share .l { font-size: 12px; color: var(--muted); }
+.windows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.win { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 8px; display: grid; gap: 3px; min-width: 0; }
+.win.official { border-color: var(--boards); }
+.win .wl { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+.win .wv { display: flex; align-items: center; gap: 5px; font-family: var(--f-display); font-weight: 700; font-size: 24px; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.win .wv img { width: 22px; height: 22px; object-fit: contain; }
+.win .wbar { position: relative; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.win .wbar i { position: absolute; top: 0; bottom: 0; }
+.win .wbar::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--ink); opacity: .5; }
+.win .wsub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status { font-size: 13px; color: var(--muted); margin: 0; display: flex; align-items: center; gap: 8px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--boards); flex: none; }
 .dot.on { background: var(--live); }
@@ -176,13 +182,13 @@ tr.total td { font-weight: 500; border-bottom: none; }
   h2 { font-size: 19px; }
   .main > .panel:first-child { grid-area: rink; }
   .main > .panel:last-child { grid-area: meter; justify-content: space-between; gap: 6px; }
-  .share { padding: 5px 10px; }
+  .win { padding: 5px 9px 6px; }
   #rink { flex: 1 1 auto; min-height: 0; width: 100%; height: 100%; }
   .legend { font-size: 12px; gap: 10px; }
   .tiltnum .big { font-size: clamp(40px, 7vh, 72px); }
   .tiltnum .abbr { font-size: 28px; }
   .verdict { font-size: 15px; }
-  .share .v { font-size: 24px; }
+  .win .wv { font-size: 22px; }
   .chartpanel { grid-area: chart; }
   #chartbox { flex: 1 1 0; min-height: 0; position: relative; }
   #chartbox #chart { position: absolute; inset: 0; height: 100%; }
@@ -309,10 +315,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
         <div class="meter"><div class="half" id="meterL"></div><div class="half" id="meterR"></div><div class="fill" id="meterFill"></div><div class="mid"></div></div>
         <div class="meter-labels"><span id="mlL">←</span><span>Even</span><span id="mlR">→</span></div>
       </div>
-      <div class="shares">
-        <div class="share"><div class="v" id="shareA">50%</div><div class="l" id="shareAl">Away share</div></div>
-        <div class="share"><div class="v" id="shareH">50%</div><div class="l" id="shareHl">Home share</div></div>
-      </div>
+      <div class="windows" id="windows" aria-label="Ice Tilt over the last 2, 5 and 10 minutes"></div>
       <p class="status"><span class="dot" id="dot"></span><span id="status">Not loaded</span></p>
     </section>
   </div>
@@ -357,6 +360,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
           <div><b>45+</b><span>Hemmed in. The defending team can't clear it.</span></div>
         </div>
         <ul>
+          <li>The 5 and 10 minute boxes use the same method over longer windows. When a short window disagrees with a long one, a team is pushing against the run of play.</li>
           <li>Power plays (shaded on the chart) tilt the ice by design.</li>
           <li>The trailing team usually gains tilt late in games as the leader sits back.</li>
           <li>Tilt is not shots. Compare the two in the period table.</li>
@@ -608,6 +612,9 @@ tr.total td { font-weight: 500; border-bottom: none; }
       const roll = new Array(step.length); let sum = 0;
       for (let i = 0; i < step.length; i++) { sum += step[i]; if (i >= WINDOW) sum -= step[i - WINDOW]; roll[i] = sum / Math.min(i + 1, WINDOW); }
       per.step = step; per.roll = roll;
+      const pre = new Float64Array(step.length + 1);
+      for (let i = 0; i < step.length; i++) pre[i + 1] = pre[i] + step[i];
+      per.pre = pre;
       per.avg = step.length ? step.reduce((a, b) => a + b, 0) / step.length : 0;
       per.goals.forEach((g) => { g.tiltBefore = roll.length && g.t > 0 ? roll[Math.min(g.t, roll.length) - 1] : 0; });
     }
@@ -713,9 +720,44 @@ tr.total td { font-weight: 500; border-bottom: none; }
     $("mlL").textContent = "← " + away.abbrev; $("mlR").textContent = home.abbrev + " →";
     const w = Math.min(50, Math.abs(m.tilt) * 50);
     const f = $("meterFill"); f.style.left = (m.tilt >= 0 ? 50 : 50 - w) + "%"; f.style.width = w + "%"; f.style.background = lead ? lc : "transparent";
-    const sh = Math.round(50 + t / 2);
-    $("shareA").textContent = (100 - sh) + "%"; $("shareA").style.color = cA; $("shareAl").textContent = away.abbrev + " territorial share";
-    $("shareH").textContent = sh + "%"; $("shareH").style.color = cH; $("shareHl").textContent = home.abbrev + " territorial share";
+    // 2 / 5 / 10 minute comparison (each restarts with the period, like the official stat)
+    const avgAt = (w) => { if (!per || !m.now || !per.pre) return 0; const k = Math.min(m.now, w); return (per.pre[m.now] - per.pre[m.now - k]) / k; };
+    const W = [{ w: 120, label: "2 min", note: "Official" }, { w: 300, label: "5 min" }, { w: 600, label: "10 min" }];
+    const wbox = $("windows"); wbox.textContent = "";
+    const vals = W.map((x) => Math.round(avgAt(x.w) * 100));
+    W.forEach((x, i) => {
+      const v = vals[i], tm = v > 0 ? home : v < 0 ? away : null, col = v > 0 ? cH : v < 0 ? cA : "var(--muted)";
+      const cell = document.createElement("div"); cell.className = "win" + (i === 0 ? " official" : "");
+      const l = document.createElement("div"); l.className = "wl";
+      const l1 = document.createElement("span"); l1.textContent = x.label;
+      const l2 = document.createElement("span"); l2.textContent = x.note || "";
+      l.append(l1, l2);
+      const val = document.createElement("div"); val.className = "wv"; val.style.color = col;
+      if (tm) { const src = logoFor(tm); if (src) { const im = document.createElement("img"); im.src = src; im.alt = ""; im.onerror = () => im.remove(); val.append(im); } }
+      val.append(document.createTextNode(tm ? tm.abbrev + " " + Math.abs(v) : "Even"));
+      const bar = document.createElement("div"); bar.className = "wbar";
+      const fi = document.createElement("i"); const bw = Math.min(50, Math.abs(v) / 2);
+      // home is on the right of the meter, same as the big bar
+      fi.style.left = (v >= 0 ? 50 : 50 - bw) + "%"; fi.style.width = bw + "%"; fi.style.background = col;
+      bar.append(fi);
+      const sub = document.createElement("div"); sub.className = "wsub";
+      sub.textContent = per && m.now < x.w ? "Period so far (" + fmt(m.now) + ")" : label(v);
+      cell.append(l, val, bar, sub);
+      cell.title = "Average position of play over the last " + x.label + " of game clock in this period";
+      wbox.append(cell);
+    });
+    // when the short and long windows disagree, say so
+    const [v2, v5, v10] = vals;
+    const longV = per && m.now >= 300 ? (m.now >= 600 ? v10 : v5) : null;
+    const longLabel = per && m.now >= 600 ? "10" : "5";
+    if (longV != null && Math.abs(v2) >= 10 && Math.abs(longV) >= 10 && Math.sign(v2) !== Math.sign(longV)) {
+      const now2 = v2 > 0 ? home : away, then = longV > 0 ? home : away;
+      $("verdict").textContent = nm(now2) + " are pushing right now, but the " + nm(then) + " have had the better of the last " + longLabel + " minutes.";
+    } else if (longV != null && Math.abs(v2) >= 25 && Math.abs(longV) < 10) {
+      $("verdict").textContent = nm(v2 > 0 ? home : away) + " are tilting the ice after an even stretch.";
+    } else if (longV != null && Math.abs(v2) >= 10 && Math.abs(longV) >= 25 && Math.sign(v2) === Math.sign(longV)) {
+      $("verdict").textContent = nm(v2 > 0 ? home : away) + " have controlled play for the last " + longLabel + " minutes.";
+    }
     $("rink").style.transform = "rotate(" + (m.tilt * 6).toFixed(2) + "deg)";
 
     // rewind state
