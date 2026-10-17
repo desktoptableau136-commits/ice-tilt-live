@@ -95,6 +95,9 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 @keyframes blink { 50% { opacity: .3; } }
 
 #chartbox { position: relative; }
+.delaybox { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.delaybox select { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: var(--surface); color: var(--ink); font: inherit; }
+.delaybox.on select { border-color: var(--focus); color: var(--focus); font-weight: 600; }
 #chart { cursor: ew-resize; touch-action: pan-y; }
 #chart:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .btn.small { padding: 3px 10px; font-size: 13px; }
@@ -207,6 +210,17 @@ tr.total td { font-weight: 500; border-bottom: none; }
       <button class="btn" id="prevDay" type="button" aria-label="Previous day">←</button>
       <input type="date" id="date" aria-label="Game date">
       <button class="btn" id="nextDay" type="button" aria-label="Next day">→</button>
+      <label class="delaybox" for="delay" title="Hold the feed back so it doesn't run ahead of your TV">TV delay
+        <select id="delay">
+          <option value="0">Off</option>
+          <option value="10">10 s</option>
+          <option value="15">15 s</option>
+          <option value="20">20 s</option>
+          <option value="30">30 s</option>
+          <option value="45">45 s</option>
+          <option value="60">60 s</option>
+        </select>
+      </label>
       <button class="btn" id="howBtn" type="button" aria-expanded="false" aria-controls="how">How it works</button>
     </div>
   </header>
@@ -340,7 +354,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
 <script>
 (function () {
   "use strict";
-  const WINDOW = 120, REFRESH = 10000;
+  const WINDOW = 120, REFRESH = 5000;
   const $ = (id) => document.getElementById(id);
   const ns = "http://www.w3.org/2000/svg";
 
@@ -373,6 +387,24 @@ tr.total td { font-weight: 500; border-bottom: none; }
   let gameId = (location.hash.match(/^#(\d{10})$/) || [])[1] || null;
   let dateStr = localDate(new Date());
   let lastData = null, lastFetch = 0, timer = null, games = [];
+  // TV delay: keep recent feed snapshots and show the newest one at least `delay` seconds old
+  const DELAY_KEY = "icetilt.delay";
+  let delay = 15;
+  try { const v = localStorage.getItem(DELAY_KEY); if (v !== null && !isNaN(+v)) delay = +v; } catch (e) {}
+  let pbpBuf = [], scoreBuf = [], shownSnap = null, latestState = null;
+  function pushSnap(buf, item) {
+    buf.push(item);
+    const keep = Date.now() - (delay + 90) * 1000;
+    while (buf.length > 1 && buf[1].ts < keep) buf.shift();
+  }
+  function pickSnap(buf) {
+    if (!buf.length) return null;
+    if (!delay) return buf[buf.length - 1];
+    const cutoff = Date.now() - delay * 1000;
+    let best = null;
+    for (const x of buf) if (x.ts <= cutoff) best = x;
+    return best;
+  }
 
   function localDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   const mmss = (s) => { if (!s) return 0; const [m, x] = s.split(":"); return +m * 60 + +x; };
@@ -392,6 +424,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     try {
       const d = await getJSON("/api/score/" + dateStr);
       games = d.games || [];
+      scoreBuf = []; pushSnap(scoreBuf, { ts: Date.now(), games });
       showError("");
     } catch (e) {
       games = [];
@@ -419,16 +452,21 @@ tr.total td { font-weight: 500; border-bottom: none; }
   function renderGames() {
     const box = $("games"); box.textContent = "";
     if (!games.length) { const p = document.createElement("div"); p.className = "empty"; p.textContent = "No NHL games on this date."; box.append(p); return; }
-    games.forEach((g) => {
+    const snap = pickSnap(scoreBuf);
+    const delayed = snap ? new Map(snap.games.map((x) => [x.id, x])) : null;
+    games.forEach((latest) => {
+      // with a TV delay, scores and clocks come from the delayed snapshot so the chips can't spoil a goal
+      const g = delayed && delayed.get(latest.id) || latest;
+      const hideScore = !delayed && delay > 0 && (latest.gameState === "LIVE" || latest.gameState === "CRIT");
       const b = document.createElement("button"); b.type = "button"; b.className = "game";
       b.setAttribute("aria-pressed", String(String(g.id) === gameId));
       const m = document.createElement("span"); m.className = "m";
-      const sc = g.awayTeam.score != null ? "  " + g.awayTeam.score + "–" + g.homeTeam.score : "";
+      const sc = g.awayTeam.score != null && !hideScore ? "  " + g.awayTeam.score + "–" + g.homeTeam.score : "";
       m.textContent = g.awayTeam.abbrev + " @ " + g.homeTeam.abbrev + sc;
-      const st = gameStatus(g);
+      const st = hideScore ? { text: "Live · syncing to TV delay", live: true } : gameStatus(g);
       const s = document.createElement("span"); s.className = "s" + (st.live ? " live" : ""); s.textContent = st.text;
       b.append(m, s);
-      b.onclick = () => { goLive(); gameId = String(g.id); history.replaceState(null, "", "#" + gameId); renderGames(); loadGame(); };
+      b.onclick = () => { goLive(); resetGameBuf(); gameId = String(g.id); history.replaceState(null, "", "#" + gameId); renderGames(); loadGame(); };
       box.append(b);
     });
   }
@@ -440,18 +478,36 @@ tr.total td { font-weight: 500; border-bottom: none; }
     try {
       const d = await getJSON("/api/pbp/" + id);
       if (id !== gameId) return;
-      lastData = d; lastFetch = Date.now();
+      latestState = d.gameState;
+      pushSnap(pbpBuf, { ts: Date.now(), d });
       showError("");
-      render(analyze(d));
+      showDelayed();
     } catch (e) {
       showError("Couldn't load this game (" + e.message + "). Retrying in 10 seconds.");
     }
-    const live = lastData && (lastData.gameState === "LIVE" || lastData.gameState === "CRIT" || lastData.gameState === "PRE");
-    if (live) timer = setTimeout(() => { loadGame(); refreshScoreQuietly(); }, REFRESH);
+    const live = latestState === "LIVE" || latestState === "CRIT" || latestState === "PRE";
+    if (live || !latestState) timer = setTimeout(() => { loadGame(); refreshScoreQuietly(); }, REFRESH); // also retries after a failed load
   }
   async function refreshScoreQuietly() {
-    try { games = (await getJSON("/api/score/" + dateStr)).games || games; renderGames(); } catch (e) {}
+    try { games = (await getJSON("/api/score/" + dateStr)).games || games; pushSnap(scoreBuf, { ts: Date.now(), games }); renderGames(); } catch (e) {}
   }
+  function resetGameBuf() { pbpBuf = []; shownSnap = null; latestState = null; }
+  // A finished game has nothing to spoil, so it skips the delay.
+  function showDelayed() {
+    if (!pbpBuf.length) return;
+    const newest = pbpBuf[pbpBuf.length - 1];
+    let snap = /FINAL|OFF/.test(newest.d.gameState) && !(shownSnap && /LIVE|CRIT/.test(shownSnap.d.gameState)) ? newest : pickSnap(pbpBuf);
+    if (!snap) { renderStatus(); return; } // nothing old enough yet: keep what's on screen
+    if (snap === shownSnap) return;
+    shownSnap = snap; lastData = snap.d; lastFetch = snap.ts;
+    render(analyze(snap.d));
+  }
+  let lastChipSnap = null;
+  setInterval(() => {
+    showDelayed();
+    const cs = pickSnap(scoreBuf);
+    if (cs !== lastChipSnap) { lastChipSnap = cs; renderGames(); }
+  }, 1000);
 
   function analyze(d) {
     const homeId = d.homeTeam.id;
@@ -635,12 +691,19 @@ tr.total td { font-weight: 500; border-bottom: none; }
   }
 
   function renderStatus() {
-    if (!lastData) return;
+    if (!lastData) {
+      if (pbpBuf.length && delay) {
+        const wait = Math.max(0, Math.ceil(delay - (Date.now() - pbpBuf[0].ts) / 1000));
+        $("status").textContent = "Matching your " + delay + " s TV delay. Showing the game in " + wait + " s.";
+        $("verdict").textContent = "Holding the feed so it doesn't run ahead of your TV.";
+      }
+      return;
+    }
     const live = lastData.gameState === "LIVE" || lastData.gameState === "CRIT";
     $("dot").classList.toggle("on", live);
     const ago = Math.round((Date.now() - lastFetch) / 1000);
     if (scrub) { $("status").textContent = (playing ? "Replaying the game." : "Rewound.") + (live ? " Live data keeps updating in the background." : ""); return; }
-    $("status").textContent = live ? "Live. Updated " + ago + " s ago, refreshing every 10 s." : /FINAL|OFF/.test(lastData.gameState) ? "Final. Full-game data loaded." : "Game hasn't started. Checking every 10 s.";
+    $("status").textContent = live ? (delay ? "Live, " + delay + " s behind the feed to match your TV. Showing data from " + ago + " s ago." : "Live. Updated " + ago + " s ago, refreshing every " + REFRESH / 1000 + " s.") : /FINAL|OFF/.test(lastData.gameState) ? "Final. Full-game data loaded." : "Game hasn't started. Checking every 10 s.";
   }
   setInterval(renderStatus, 1000);
 
@@ -862,10 +925,22 @@ tr.total td { font-weight: 500; border-bottom: none; }
   $("howClose").onclick = () => setHow(false);
   $("scrim").onclick = () => setHow(false);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("how").classList.contains("open")) setHow(false); });
-  const shiftDay = (n) => { const [y, m, d] = dateStr.split("-").map(Number); const dt = new Date(y, m - 1, d + n); dateStr = localDate(dt); gameId = null; history.replaceState(null, "", location.pathname); lastData = null; loadGames(); };
+  const delaySel = $("delay");
+  if (![...delaySel.options].some((o) => +o.value === delay)) { const o = document.createElement("option"); o.value = delay; o.textContent = delay + " s"; delaySel.append(o); }
+  delaySel.value = String(delay);
+  const markDelay = () => delaySel.parentElement.classList.toggle("on", delay > 0);
+  markDelay();
+  delaySel.onchange = () => {
+    delay = +delaySel.value;
+    try { localStorage.setItem(DELAY_KEY, String(delay)); } catch (e) {}
+    markDelay();
+    // shorter delay jumps ahead right away; longer delay holds the screen until the buffer catches up
+    showDelayed(); lastChipSnap = null; renderStatus();
+  };
+  const shiftDay = (n) => { const [y, m, d] = dateStr.split("-").map(Number); const dt = new Date(y, m - 1, d + n); dateStr = localDate(dt); gameId = null; history.replaceState(null, "", location.pathname); lastData = null; resetGameBuf(); loadGames(); };
   $("prevDay").onclick = () => shiftDay(-1);
   $("nextDay").onclick = () => shiftDay(1);
-  $("date").onchange = (e) => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { dateStr = e.target.value; gameId = null; lastData = null; loadGames(); } };
+  $("date").onchange = (e) => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { dateStr = e.target.value; gameId = null; lastData = null; resetGameBuf(); loadGames(); } };
   let rt;
   if (window.ResizeObserver) new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { if (lastData) renderChart(analyze(lastData)); }, 100); }).observe($("chartbox"));
   window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (lastData) renderChart(analyze(lastData)); }, 150); });
