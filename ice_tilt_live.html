@@ -132,6 +132,9 @@ th .tblogo { width: 20px; height: 20px; }
 .mlogo { width: 44px; height: 44px; object-fit: contain; align-self: center; }
 .game .m { display: flex; align-items: center; gap: 4px; }
 .game .glogo { width: 20px; height: 20px; object-fit: contain; flex: none; }
+.game .lost { color: var(--muted); }
+.game .glogo.lost { opacity: .45; }
+.game .gsc { margin-left: 4px; }
 .tip.with-photo { grid-template-columns: 64px minmax(0, 1fr); column-gap: 12px; align-items: start; max-width: 340px; }
 .tip-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--ice); border: 2px solid currentColor; }
 .tip-body { display: grid; gap: 1px; min-width: 0; }
@@ -728,13 +731,16 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       const b = document.createElement("button"); b.type = "button"; b.className = "game";
       b.setAttribute("aria-pressed", String(String(g.id) === gameId));
       const m = document.createElement("span"); m.className = "m";
-      const sc = g.awayTeam.score != null && !hideScore ? "  " + g.awayTeam.score + "–" + g.homeTeam.score : "";
-      const chipLogo = (t) => { const src = logoFor(t); if (!src) return null; const i = document.createElement("img"); i.className = "glogo"; i.alt = ""; i.src = src; i.onerror = () => i.remove(); return i; };
-      const la = chipLogo(g.awayTeam), lh = chipLogo(g.homeTeam);
+      // a finished game's loser fades, like the tiles and scoreboard
+      const win = hideScore ? null : winnerOf(g), lost = (isHome) => win != null && win !== +isHome;
+      const part = (text, isHome) => { const s = document.createElement("span"); s.textContent = text; if (lost(isHome)) s.className = "lost"; return s; };
+      const chipLogo = (t, isHome) => { const src = logoFor(t); if (!src) return null; const i = document.createElement("img"); i.className = "glogo" + (lost(isHome) ? " lost" : ""); i.alt = ""; i.src = src; i.onerror = () => i.remove(); return i; };
+      const la = chipLogo(g.awayTeam, false), lh = chipLogo(g.homeTeam, true);
       if (la) m.append(la);
-      m.append(document.createTextNode(g.awayTeam.abbrev + " @ "));
+      m.append(part(g.awayTeam.abbrev, false), " @ ");
       if (lh) m.append(lh);
-      m.append(document.createTextNode(g.homeTeam.abbrev + sc));
+      m.append(part(g.homeTeam.abbrev, true));
+      if (g.awayTeam.score != null && !hideScore) { const sc = document.createElement("span"); sc.className = "gsc"; sc.append(part(String(g.awayTeam.score), false), "–", part(String(g.homeTeam.score), true)); m.append(sc); }
       if (pinned(g)) { const pi = pinIcon(true); pi.setAttribute("class", "pin"); m.append(pi); }
       const st = hideScore ? { text: "Live · syncing to TV delay", live: true } : gameStatus(g);
       const s = document.createElement("span"); s.className = "s" + (st.live ? " live" : ""); s.textContent = st.text;
