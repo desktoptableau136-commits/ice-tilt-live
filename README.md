@@ -45,4 +45,5 @@ The direction and the swings follow the official idea. The size of the number wo
 
 - `ice_tilt_live.py`: a small local server that serves the page and relays `api-web.nhle.com`. The relay is needed because browsers can't call that API directly from a page.
 - `ice_tilt_live.html`: the dashboard.
+- `tools/score_curve.py`: rebuilds the score-adjusted tilt table from a full season. `python tools/score_curve.py --update-page` uses 2025–26 and writes the table into `ice_tilt_live.html`. Add a season like `20262027` to use another one. Downloads are cached in `tools/cache/`, which isn't committed, so re-runs only fetch new games. A first run downloads about 1,300 games and takes a few minutes.
 - `tap-along-tracker.html`: the manual Ice Tilt Tap-Along. Open it straight in a browser (no Python needed) and tap where play is to track a game by hand.
