@@ -8,13 +8,34 @@ A live Ice Tilt dashboard for any NHL game. It approximates the NHL/AWS "Ice Til
 python ice_tilt_live.py
 ```
 
-This opens http://127.0.0.1:8765 in your browser. Phones and tablets on the same Wi-Fi can open the address printed in the terminal, like `http://192.168.x.x:8765/`. It needs Python 3 and nothing else. Press Ctrl+C to stop.
+This opens http://127.0.0.1:8765 in your browser, starting on all of the day's games. Phones and tablets on the same Wi-Fi can open the address printed in the terminal, like `http://192.168.x.x:8765/`. It needs Python 3 and nothing else. Press Ctrl+C to stop.
 
 - The first time, allow Python through Windows Firewall on **Private** networks. On Public networks, like hotels and cafés, Windows keeps blocking other devices.
 - `python ice_tilt_live.py --local` makes it work on this computer only
 - `python ice_tilt_live.py 9000` runs it on a different port
 - `python ice_tilt_live.py --no-browser` starts it without opening a browser
 - On a touch screen, tap a goal once for details and again for the highlight.
+
+## All games
+
+The page opens on every game for the date, as tiles. Click a tile to open that game's dashboard. **All games** in the top bar, or the browser's Back button, returns to the tiles. A link with a game number (like `#2026020180`) opens that game directly.
+
+- **Live** tiles show the score, clock and period, and an intermission countdown during breaks. They also show:
+  - A small rink of the last two minutes, the current 2 min tilt, and the whole-game tilt so far.
+  - A strip of the tilt over the game, with goals and period breaks.
+  - Shots, shot attempts and hits. The game with the most of each on that date is marked **most**.
+- **Tags** call out what's happening:
+  - **PP** with the time left, and **EN** when a goalie is pulled.
+  - **4 on 4**.
+  - **Close & late**: a one-goal or tied game in the last 10 minutes of the 3rd.
+  - **Overtime** and **Shootout**.
+  - A **flurry**: 4 or more shots on goal by one team in the last 2 minutes.
+- **Goals:** when a goal comes in, its tile flashes in the scoring team's color for a minute. The latest goal stays on the tile with the scorer, assists and strength, plus a **Watch** link once the NHL posts the highlight.
+- The **Goals** strip at the top lists every goal on the date, newest first. Click one to watch it.
+- **Pins:** the pin in a tile's corner moves that game into a **Pinned** section at the top, and its chip to the front of the game list. NJD and PIT games start out pinned, and you can unpin any of them. Pins are remembered.
+- **Goal banners:** while you're watching one game, goals in the other games pop up in the bottom-right corner, with links to open that game or watch the highlight. A banner stays 15 seconds, or 30 for a pinned game, and holds while your pointer is on it.
+- **Later** tiles show start time, records, arena and TV channels. **Final** tiles show the tilt strip, game tilt and counters.
+- Scores and clocks refresh every 5 seconds and live play-by-play every 10. TV delay and score-adjusted tilt apply here too.
 
 ## What's on the dashboard
 

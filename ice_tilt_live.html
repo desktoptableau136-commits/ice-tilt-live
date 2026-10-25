@@ -24,7 +24,7 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--ice); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 56px; display: grid; gap: 20px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -37,7 +37,7 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 
 .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
 .top p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
-.datebox { display: flex; gap: 6px; align-items: center; }
+.datebox { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .datebox input { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: var(--surface); }
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 6px 12px; }
 .btn:hover { border-color: var(--boards); }
@@ -233,6 +233,106 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
 
 #howClose { display: none; }
 
+/* All games: with no game picked, every game on the date is a tile, with a goal ticker on top */
+body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel, body.home #games { display: none; }
+#home[hidden], #homeBtn[hidden], .homesum[hidden], .ticker[hidden], .hsec[hidden] { display: none; }
+.homesum { flex: 1 1 auto; font-size: 14px; color: var(--muted); }
+.homesum b { color: var(--live); font-weight: 600; }
+#homeBtn { flex: none; white-space: nowrap; }
+#home { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.ticker { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ticker .eyebrow { flex: none; }
+.tickrow { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding: 2px 2px 4px; min-width: 0; }
+.tick { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px 10px 2px 3px; font-size: 13px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.tick:hover { border-color: var(--boards); }
+.tick .av { width: 24px; height: 24px; }
+.tick b { font-family: var(--f-display); font-size: 15px; }
+.tick small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tick.fresh { border-color: var(--gc); box-shadow: inset 0 0 0 1px var(--gc); }
+.hsec { display: grid; gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; align-items: start; }
+.tiles.later { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.tile { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; display: grid; gap: 8px; min-width: 0; }
+.tile:hover { border-color: var(--boards); }
+.tile:has(.tlink:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* the header link stretches over the whole tile, so a click anywhere opens the game */
+.tlink { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; color: inherit; text-decoration: none; }
+.tlink::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.tlink:focus-visible { outline: none; }
+.tteam { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tteam.h { flex-direction: row-reverse; }
+.tteam img { width: 32px; height: 32px; object-fit: contain; flex: none; }
+.tteam .nm { display: grid; min-width: 0; }
+.tteam.h .nm { text-align: right; }
+.tteam .ab { font-family: var(--f-display); font-weight: 700; font-size: 20px; line-height: 1; }
+.tteam .rec { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tteam .sc { font-family: var(--f-display); font-weight: 700; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; margin-inline: auto 2px; }
+.tteam.h .sc { margin-inline: 2px auto; }
+.tstat { display: grid; justify-items: center; text-align: center; }
+.tstat .tc { font-family: var(--f-mono); font-size: 18px; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tstat .tp { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+.tstat.on .tp { color: var(--live); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: 12px; line-height: 1.5; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.tag.hot { background: var(--live); border-color: var(--live); color: #fff; }
+.tmid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: center; }
+.mrink { width: 100%; height: auto; display: block; }
+.mrink .surface { fill: var(--rink); }
+.mrink .boards { fill: none; stroke: var(--boards); stroke-width: 1.4; }
+.mrink .red { stroke: var(--rink-red); } .mrink .blue { stroke: var(--rink-blue); }
+.ttilt { display: grid; gap: 4px; min-width: 0; }
+.ttilt .tv { display: flex; align-items: center; gap: 5px; font-family: var(--f-display); font-weight: 700; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ttilt .tv img { width: 24px; height: 24px; object-fit: contain; }
+.ttilt .pill { justify-self: start; font-size: 11px; padding: 1px 7px; letter-spacing: .06em; }
+.tmeter { position: relative; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.tmeter i { position: absolute; top: 0; bottom: 0; }
+.tmeter::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--ink); opacity: .5; }
+.ttilt .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spark { width: 100%; height: auto; display: block; }
+.spark text { font-family: var(--f-body); fill: var(--muted); font-size: 9px; }
+.counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.cnt { border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px 3px; display: grid; min-width: 0; }
+.cnt .cl { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cnt .cv { font-family: var(--f-mono); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cnt.most { border-color: var(--focus); }
+.cnt.most .cl { color: var(--focus); }
+.gline { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; border-left: 3px solid var(--gc); padding: 3px 6px 3px 8px; border-radius: 0 6px 6px 0; }
+.gline .gtxt { min-width: 0; display: grid; }
+.gline .gtxt span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gline .gk { font-family: var(--f-display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gc); margin-right: 4px; }
+.gline .gsub { color: var(--muted); font-size: 12px; }
+.gline a { position: relative; z-index: 1; color: var(--focus); font-weight: 600; white-space: nowrap; font-size: 12.5px; }
+.tile.flash { border-color: var(--gc); box-shadow: 0 0 0 2px var(--gc); }
+.tile.flash .gline { background: color-mix(in srgb, var(--gc) 14%, transparent); }
+.tile.flash .gline .gk { font-size: 15px; }
+@media (prefers-reduced-motion: no-preference) {
+  .tile.flash { animation: goalflash 1.2s ease-in-out 5; }
+}
+@keyframes goalflash { 50% { box-shadow: 0 0 0 6px var(--gc); } }
+.tmsg { font-size: 13px; color: var(--muted); margin: 0; }
+.thead { display: flex; align-items: flex-start; gap: 2px; }
+.thead .tlink { flex: 1 1 auto; min-width: 0; }
+/* sits above the tile-wide link so it can be clicked on its own */
+.pinbtn { position: relative; z-index: 1; flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; margin: -6px -8px 0 0; border: 0; border-radius: 6px; background: none; color: var(--muted); opacity: .4; }
+.tile:hover .pinbtn, .pinbtn:focus-visible { opacity: 1; }
+.pinbtn:hover { color: var(--ink); background: var(--ice); }
+.pinbtn[aria-pressed="true"] { opacity: 1; color: var(--focus); }
+.game .pin { width: 12px; height: 12px; color: var(--focus); flex: none; }
+
+/* goal banners: other games' goals while watching one */
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 15; display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); pointer-events: none; }
+.toast { pointer-events: auto; position: relative; background: var(--surface); border: 1px solid var(--boards); border-left: 4px solid var(--gc); border-radius: 8px; padding: 8px 34px 8px 10px; box-shadow: 0 8px 28px rgba(0,0,0,.25); display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: center; font-size: 13px; }
+.toast .av { grid-row: 1 / span 3; }
+.toast > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast .gk { font-family: var(--f-display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gc); font-size: 15px; margin-right: 4px; }
+.toast .gsub { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.toast .acts { display: flex; gap: 12px; font-size: 12.5px; font-weight: 600; }
+.toast .acts a { color: var(--focus); }
+.toast .x { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 18px; line-height: 1; }
+.toast .x:hover { color: var(--ink); background: var(--ice); }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: toastin .35s cubic-bezier(.2,.7,.2,1); } }
+@keyframes toastin { from { transform: translateY(12px); opacity: 0; } }
+
 /* One-screen dashboard on laptop and desktop windows */
 @media (min-width: 1000px) and (min-height: 600px) {
   html, body { height: 100%; overflow: hidden; }
@@ -288,6 +388,8 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
   th { font-size: 12px; }
   .tab { font-size: 18px; }
   table.stbl { min-width: 0; }
+  body.home .wrap { grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "top top top" "home home home"; }
+  #home { grid-area: home; overflow-y: auto; min-height: 0; padding: 2px 6px 16px 2px; }
   .error { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 5; max-width: min(90vw, 640px); box-shadow: 0 6px 24px rgba(0,0,0,.2); }
   .how { position: fixed; inset: 8vh 50% auto auto; transform: translateX(50%); width: min(1000px, 92vw); max-height: 84vh; overflow: auto; z-index: 11; box-shadow: 0 12px 48px rgba(0,0,0,.3); display: grid; }
   .how:not(.open) { display: none; }
@@ -314,7 +416,9 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
       <h1>Ice Tilt Live</h1>
       <p>A two-minute rolling Ice Tilt for any NHL game, built from where every shot, hit, faceoff, takeaway and giveaway happens on the ice. Refreshes every 10 seconds during live games.</p>
     </div>
+    <button class="btn" id="homeBtn" type="button" hidden>&#9638; All games</button>
     <div class="games" id="games" role="group" aria-label="Games"></div>
+    <div class="homesum" id="homeSum" hidden></div>
     <div class="datebox">
       <button class="btn" id="prevDay" type="button" aria-label="Previous day">←</button>
       <input type="date" id="date" aria-label="Game date">
@@ -341,6 +445,15 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
   </header>
 
   <div class="error" id="err" hidden></div>
+
+  <section id="home" aria-label="All games" hidden>
+    <div class="ticker" id="ticker" hidden><span class="eyebrow">Goals</span><div class="tickrow" id="tickRow"></div></div>
+    <section class="hsec" id="secPinned" hidden><h2>Pinned</h2><div class="tiles" id="tilesPinned"></div></section>
+    <section class="hsec" id="secLive" hidden><h2>Live</h2><div class="tiles" id="tilesLive"></div></section>
+    <section class="hsec" id="secLater" hidden><h2>Later</h2><div class="tiles later" id="tilesLater"></div></section>
+    <section class="hsec" id="secFinal" hidden><h2>Final</h2><div class="tiles" id="tilesFinal"></div></section>
+    <p class="empty" id="homeEmpty" hidden>No NHL games on this date.</p>
+  </section>
 
   <section class="board" aria-label="Scoreboard">
     <div class="side away">
@@ -447,6 +560,7 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
     <div class="tablewrap pane" id="pane-players" role="tabpanel" aria-labelledby="tab-players" hidden></div>
   </section>
 
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
   <div class="scrim" id="scrim" hidden></div>
   <section class="panel how" id="how" aria-labelledby="howTitle">
     <div class="panel-head">
@@ -536,9 +650,9 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
   let delay = 0;
   try { const v = localStorage.getItem(DELAY_KEY); if (v !== null && !isNaN(+v)) delay = +v; } catch (e) {}
   let pbpBuf = [], scoreBuf = [], shownSnap = null, latestState = null;
-  function pushSnap(buf, item) {
+  function pushSnap(buf, item, slack = 90) {
     buf.push(item);
-    const keep = Date.now() - (delay + 90) * 1000;
+    const keep = Date.now() - (delay + slack) * 1000;
     while (buf.length > 1 && buf[1].ts < keep) buf.shift();
   }
   function pickSnap(buf) {
@@ -577,11 +691,9 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
         : "Couldn't reach the NHL feed (" + e.message + "). Check your internet connection. Retrying soon.");
     }
     renderGames();
-    if (!gameId || !games.some((g) => String(g.id) === gameId)) {
-      const pick = games.find((g) => g.gameState === "LIVE" || g.gameState === "CRIT") || games.filter((g) => /FINAL|OFF/.test(g.gameState)).pop() || games[0];
-      if (pick && !gameId) gameId = String(pick.id);
-    }
-    if (gameId) loadGame();
+    // no game in the address: show every game on the date
+    if (gameId) { if (view !== "game") setView("game"); loadGame(); }
+    else { if (view !== "home") setView("home"); homeTick(); }
   }
   function gameStatus(g) {
     if (g.gameState === "LIVE" || g.gameState === "CRIT") {
@@ -598,7 +710,7 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
     if (!games.length) { const p = document.createElement("div"); p.className = "empty"; p.textContent = "No NHL games on this date."; box.append(p); return; }
     const snap = pickSnap(scoreBuf);
     const delayed = snap ? new Map(snap.games.map((x) => [x.id, x])) : null;
-    games.forEach((latest) => {
+    games.slice().sort((x, y) => pinned(y) - pinned(x)).forEach((latest) => {
       // with a TV delay, scores and clocks come from the delayed snapshot so the chips can't spoil a goal
       const g = delayed && delayed.get(latest.id) || latest;
       const hideScore = !delayed && delay > 0 && (latest.gameState === "LIVE" || latest.gameState === "CRIT");
@@ -612,6 +724,7 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
       m.append(document.createTextNode(g.awayTeam.abbrev + " @ "));
       if (lh) m.append(lh);
       m.append(document.createTextNode(g.homeTeam.abbrev + sc));
+      if (pinned(g)) { const pi = pinIcon(true); pi.setAttribute("class", "pin"); m.append(pi); }
       const st = hideScore ? { text: "Live · syncing to TV delay", live: true } : gameStatus(g);
       const s = document.createElement("span"); s.className = "s" + (st.live ? " live" : ""); s.textContent = st.text;
       b.append(m, s);
@@ -640,7 +753,7 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
       showError("Couldn't load this game (" + e.message + "). Retrying in 10 seconds.");
     }
     const live = latestState === "LIVE" || latestState === "CRIT" || latestState === "PRE";
-    if (live || !latestState) timer = setTimeout(() => { loadGame(); refreshScoreQuietly(); }, REFRESH); // also retries after a failed load
+    if (live || !latestState) timer = setTimeout(loadGame, REFRESH); // also retries after a failed load
   }
   async function refreshScoreQuietly() {
     try { games = (await getJSON("/api/score/" + dateStr)).games || games; pushSnap(scoreBuf, { ts: Date.now(), games }); renderGames(); } catch (e) {}
@@ -661,7 +774,11 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
     showDelayed();
     const cs = pickSnap(scoreBuf);
     if (cs !== lastChipSnap) { lastChipSnap = cs; renderGames(); }
+    renderHome(); // only tiles whose data changed are redrawn
+    checkOtherGoals();
   }, 1000);
+  // in a game, keep the other scores coming while any game on the date isn't over
+  setInterval(() => { if (view === "game" && games.some((g) => !/FINAL|OFF/.test(g.gameState))) refreshScoreQuietly(); }, REFRESH);
 
   function analyze(d) {
     const homeId = d.homeTeam.id;
@@ -1602,6 +1719,487 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
     renderStatus();
   };
 
+  /* ---------- all games ---------- */
+  // With no game picked, every game on the date gets a tile. Scores, clocks and goals come from the
+  // schedule feed every 5 s; live games' play-by-play (tilt, rink, counters) every 10 s, finished games once.
+  // Both are held back by the TV delay the same way the game view is.
+  const HOME_REFRESH = 5000, FLASH_MS = 60000;
+  const isLive = (s) => s === "LIVE" || s === "CRIT";
+  const isFinal = (s) => /FINAL|OFF/.test(s);
+  let view = null, homeTimer = null, homeRun = 0;
+  let homeBufs = new Map();   // game id -> play-by-play snapshots
+  let goalSeen = new Map();   // game id -> goals already on screen
+  let goalFlash = new Map();  // goal -> when it first showed up
+  const tileSigs = new Map();
+  let tickerSig = "";
+  function resetHome() { homeBufs = new Map(); goalSeen = new Map(); goalFlash = new Map(); tileSigs.clear(); tickerSig = ""; }
+
+  function setView(v) {
+    view = v;
+    const home = v === "home";
+    document.body.classList.toggle("home", home);
+    $("home").hidden = !home; $("homeSum").hidden = !home; $("homeBtn").hidden = home;
+    if (home) { clearTimeout(timer); hideTip(); $("toasts").textContent = ""; } else clearTimeout(homeTimer);
+  }
+  // #gameId opens a game; no hash is the all-games view. Back and forward move between them.
+  function route() {
+    const id = (location.hash.match(/^#(\d{10})$/) || [])[1] || null;
+    if (view === (id ? "game" : "home") && id === gameId) return;
+    goLive(); resetGameBuf(); lastData = null; lastA = null;
+    gameId = id;
+    setView(id ? "game" : "home");
+    if (id) { renderGames(); loadGame(); } else { tileSigs.clear(); tickerSig = ""; renderHome(); homeTick(); }
+  }
+  window.addEventListener("hashchange", route);
+  window.addEventListener("popstate", route);
+  $("homeBtn").onclick = () => { history.pushState(null, "", location.pathname); route(); };
+
+  async function homeTick() {
+    clearTimeout(homeTimer);
+    const run = ++homeRun, current = () => run === homeRun && view === "home";
+    if (!current()) return;
+    const pbpTurn = run % 2 === 1;
+    try {
+      const d = await getJSON("/api/score/" + dateStr);
+      if (!current()) return;
+      games = d.games || []; pushSnap(scoreBuf, { ts: Date.now(), games }); showError("");
+    } catch (e) {
+      if (!current()) return;
+      showError("Couldn't reach the NHL feed (" + e.message + "). Retrying in a few seconds.");
+    }
+    // live games every other tick, finished games until a final snapshot is in
+    const want = games.filter((g) => {
+      const b = homeBufs.get(g.id);
+      return isLive(g.gameState) ? pbpTurn || !b : isFinal(g.gameState) && !(b && isFinal(b[b.length - 1].d.gameState));
+    });
+    for (let i = 0; i < want.length; i += 4) {
+      await Promise.all(want.slice(i, i + 4).map(async (g) => {
+        try {
+          const d = await getJSON("/api/pbp/" + g.id);
+          if (!current()) return;
+          const b = homeBufs.get(g.id) || [];
+          pushSnap(b, { ts: Date.now(), d }, 20); homeBufs.set(g.id, b);
+        } catch (e) {}
+      }));
+      if (!current()) return;
+    }
+    renderHome();
+    homeTimer = setTimeout(homeTick, HOME_REFRESH);
+  }
+
+  // the play-by-play snapshot a tile shows; a game that's all final has nothing to hold back
+  function homeSnap(id) {
+    const b = homeBufs.get(id);
+    if (!b || !b.length) return null;
+    const s = b.every((x) => isFinal(x.d.gameState)) ? b[b.length - 1] : pickSnap(b);
+    if (s && s.mode !== adjusted) { s.a = analyze(s.d); s.t = tally(s.a); s.mode = adjusted; }
+    return s;
+  }
+  // shot attempts and hits, plus shots on goal in the last 2 minutes for the flurry tag
+  function tally(a) {
+    const d = a.d, homeId = d.homeTeam.id, per = a.curPer, live = isLive(d.gameState);
+    const T = { sog: [d.awayTeam.sog || 0, d.homeTeam.sog || 0], att: [0, 0], hits: [0, 0], recent: [0, 0] };
+    for (const p of a.plays) {
+      const pd = p.periodDescriptor; if (!pd || pd.periodType === "SO") continue;
+      const det = p.details || {}, k = p.typeDescKey;
+      const own = det.eventOwnerTeamId == null ? null : det.eventOwnerTeamId === homeId ? 1 : 0;
+      if (k === "hit" && own != null) T.hits[own]++;
+      if (k === "goal" || k === "shot-on-goal" || k === "missed-shot" || k === "blocked-shot") {
+        // go by the shooter: a blocked shot is logged to the blocking team
+        const shooter = det.shootingPlayerId || det.scoringPlayerId;
+        const side = shooter && a.teamOf[shooter] != null ? a.teamOf[shooter] : k === "blocked-shot" ? null : own;
+        if (side == null) continue;
+        T.att[side]++;
+        if (live && per && (k === "goal" || k === "shot-on-goal") && pd.number === per.num && mmss(p.timeInPeriod) > per.elapsed - WINDOW) T.recent[side]++;
+      }
+    }
+    return T;
+  }
+  // power play, 4 on 4 and pulled goalies, from the latest play's situation code
+  // (away goalie, away skaters, home skaters, home goalie)
+  function strengthTags(a, cols) {
+    const d = a.d, per = a.curPer;
+    if (!isLive(d.gameState) || !per || (d.clock && d.clock.inIntermission)) return [];
+    let code = null;
+    for (let i = a.plays.length - 1; i >= 0 && !code; i--) {
+      const p = a.plays[i];
+      if (p.periodDescriptor && p.periodDescriptor.number === per.num && /^\d{4}$/.test(p.situationCode || "")) code = p.situationCode;
+    }
+    if (!code) return [];
+    const team = [d.awayTeam, d.homeTeam], pulled = [code[0] === "0", code[3] === "0"];
+    const sk = [+code[1] - (pulled[0] ? 1 : 0), +code[2] - (pulled[1] ? 1 : 0)]; // not counting the extra attacker
+    const tags = [];
+    if (sk[0] !== sk[1]) {
+      const s = sk[1] > sk[0] ? 1 : 0, now = per.elapsed;
+      let left = d.situation && d.situation.timeRemaining ? clk(d.situation.timeRemaining) : null;
+      if (!left) {
+        const end = Math.max(0, ...per.pens.filter((p) => p.homePP === !!s && p.t <= now && now < p.t + p.dur).map((p) => p.t + p.dur));
+        if (end) left = fmt(end - now);
+      }
+      const big = Math.abs(sk[0] - sk[1]) > 1 ? " " + sk[s] + " on " + sk[1 - s] : "";
+      tags.push({ text: "PP " + team[s].abbrev + big + (left ? " " + left : ""), col: cols[s], title: team[s].abbrev + " power play" });
+    } else if (sk[0] < 5 && !(per.type === "OT" && sk[0] === 3)) tags.push({ text: sk[0] + " on " + sk[1], col: "var(--muted)" });
+    [0, 1].forEach((s) => { if (pulled[s]) tags.push({ text: "EN " + team[s].abbrev, col: cols[s], title: team[s].abbrev + " goalie pulled for an extra attacker" }); });
+    return tags;
+  }
+  const goalKey = (g, x) => g.id + ":" + x.period + ":" + x.timeInPeriod + ":" + x.teamAbbrev;
+  const realGoals = (g) => (g.goals || []).filter((x) => !(x.periodDescriptor && x.periodDescriptor.periodType === "SO"));
+  // with a TV delay, scores and clocks come from the delayed snapshot, like the game chips
+  function scoreRows() {
+    const ss = pickSnap(scoreBuf), delayed = ss ? new Map(ss.games.map((x) => [x.id, x])) : null;
+    return games.map((latest) => {
+      const g = delayed && delayed.get(latest.id) || latest;
+      return { g, syncing: !delayed && delay > 0 && isLive(latest.gameState) };
+    });
+  }
+  // goals that show up after a game is first seen get a callout; the ones already there don't
+  function trackGoals(rows) {
+    const now = Date.now(), fresh = [];
+    rows.forEach(({ g, syncing }) => {
+      if (syncing) return;
+      const goals = realGoals(g), seen = goalSeen.get(g.id);
+      if (!seen) { goalSeen.set(g.id, new Set(goals.map((x) => goalKey(g, x)))); return; }
+      goals.forEach((x) => { const k = goalKey(g, x); if (!seen.has(k)) { seen.add(k); goalFlash.set(k, now); fresh.push({ g, x }); } });
+    });
+    return fresh;
+  }
+
+  /* pins: chosen games sit in their own section at the top; NJD and PIT games start pinned */
+  const PIN_KEY = "icetilt.pins", PIN_TEAMS = ["NJD", "PIT"];
+  let pins = { on: [], off: [] }; // games pinned by hand, and pinned-team games unpinned by hand
+  try { const v = JSON.parse(localStorage.getItem(PIN_KEY) || "null"); if (v && Array.isArray(v.on) && Array.isArray(v.off)) pins = v; } catch (e) {}
+  const teamPin = (g) => PIN_TEAMS.includes(g.awayTeam.abbrev) || PIN_TEAMS.includes(g.homeTeam.abbrev);
+  const pinned = (g) => pins.on.includes(g.id) || (teamPin(g) && !pins.off.includes(g.id));
+  function togglePin(g) {
+    const was = pinned(g);
+    pins.on = pins.on.filter((id) => id !== g.id); pins.off = pins.off.filter((id) => id !== g.id);
+    if (was && teamPin(g)) pins.off.push(g.id);
+    if (!was && !teamPin(g)) pins.on.push(g.id);
+    pins.on = pins.on.slice(-200); pins.off = pins.off.slice(-200);
+    try { localStorage.setItem(PIN_KEY, JSON.stringify(pins)); } catch (e) {}
+    renderHome(); renderGames();
+  }
+  function pinIcon(on) {
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", 16); svg.setAttribute("height", 16); svg.setAttribute("aria-hidden", "true");
+    svgIn(svg, "path", { d: "M14.5 2.5l7 7-2.6.9-3.9 3.9.6 4.6-1.8 1.8-4.2-4.2-5.4 5.4-1.2-1.2 5.4-5.4-4.2-4.2 1.8-1.8 4.6.6 3.9-3.9z",
+      fill: on ? "currentColor" : "none", stroke: "currentColor", "stroke-width": 1.6, "stroke-linejoin": "round" });
+    return svg;
+  }
+
+  /* goal banners: while watching one game, other games' goals pop up in the corner */
+  let bannerSnap = null;
+  function checkOtherGoals() {
+    if (view !== "game") return;
+    const ss = pickSnap(scoreBuf);
+    if (ss === bannerSnap) return;
+    bannerSnap = ss;
+    trackGoals(scoreRows()).forEach(({ g, x }) => { if (String(g.id) !== gameId) showBanner(g, x); });
+  }
+  function showBanner(g, x) {
+    const box = $("toasts"), [cA, cH] = teamColors(g.awayTeam.abbrev, g.homeTeam.abbrev), col = x.teamAbbrev === g.homeTeam.abbrev ? cH : cA;
+    const t = elt("article", "toast"); t.style.setProperty("--gc", col);
+    const top = elt("span"); top.append(elt("span", "gk", "Goal " + x.teamAbbrev), ((x.name && x.name.default) || "Unknown") + (x.goalsToDate ? " (" + x.goalsToDate + ")" : ""));
+    const kind = x.goalModifier === "empty-net" ? "EN" : x.strength === "pp" ? "PP" : x.strength === "sh" ? "SH" : "";
+    const sub = elt("span", "gsub", [g.awayTeam.abbrev + " " + x.awayScore + "–" + x.homeScore + " " + g.homeTeam.abbrev,
+      ord(x.period, x.periodDescriptor && x.periodDescriptor.periodType) + " " + clk(x.timeInPeriod), kind].filter(Boolean).join(" · "));
+    const acts = elt("span", "acts"), open = elt("a", null, "Open game"); open.href = "#" + g.id; acts.append(open);
+    if (x.highlightClipSharingUrl) { const w = elt("a", null, "▶ Watch"); w.href = x.highlightClipSharingUrl; w.target = "_blank"; w.rel = "noopener"; acts.append(w); }
+    const close = elt("button", "x", "×"); close.type = "button"; close.setAttribute("aria-label", "Dismiss");
+    let gone = null;
+    const remove = () => { clearTimeout(gone); t.remove(); };
+    close.onclick = remove; open.addEventListener("click", remove);
+    // pinned games' goals stay longer; any banner stays while the pointer is on it
+    const arm = () => { clearTimeout(gone); gone = setTimeout(remove, pinned(g) ? 30000 : 15000); };
+    t.addEventListener("mouseenter", () => clearTimeout(gone)); t.addEventListener("mouseleave", arm);
+    t.append(avatar(x.mugshot, "", col, true), top, sub, acts, close);
+    box.append(t);
+    while (box.children.length > 3) box.firstChild.remove();
+    arm();
+  }
+  const clk = (s) => (s || "").replace(/^0(?=\d:)/, ""); // "08:50" -> "8:50"
+  const startTime = (g) => new Date(g.startTimeUTC).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  function startsIn(g) {
+    const m = Math.round((Date.parse(g.startTimeUTC) - Date.now()) / 60000);
+    return m <= 0 ? "Starting soon" : m < 60 ? "In " + m + " min" : "In " + Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m";
+  }
+  // clock on top, period underneath
+  function tileStatus(g, syncing) {
+    const c = g.clock || {}, pd = g.periodDescriptor || {};
+    if (syncing) return { big: "Live", small: "Syncing to TV delay", on: true };
+    if (isLive(g.gameState)) {
+      if (pd.periodType === "SO") return { big: "SO", small: "Shootout", on: true };
+      if (c.inIntermission) return { big: clk(c.timeRemaining), small: ord(pd.number, pd.periodType) + " intermission", on: false };
+      return { big: clk(c.timeRemaining) || "--:--", small: ord(pd.number, pd.periodType) + (c.running ? "" : " · stopped"), on: true };
+    }
+    if (isFinal(g.gameState)) return { big: "Final", small: pd.periodType && pd.periodType !== "REG" ? pd.periodType === "SO" ? "Shootout" : "Overtime" : "", on: false };
+    if (g.gameState === "PRE") return { big: startTime(g), small: "Pregame", on: false };
+    return { big: startTime(g), small: startsIn(g), on: false };
+  }
+  function gameAvg(a) {
+    let sum = 0, secs = 0;
+    a.nums.forEach((n) => { const p = a.P[n]; if (p.pre && p.step.length) { sum += p.pre[p.step.length]; secs += p.step.length; } });
+    return secs ? sum / secs : 0;
+  }
+  const svgIn = (parent, tag, at) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); parent.append(e); return e; };
+
+  // the last two minutes on a small rink: events as dots, the dashed line is the average position of play
+  function miniRink(a, cA, cH, id) {
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "-2 -2 204 89"); svg.setAttribute("class", "mrink"); svg.setAttribute("aria-hidden", "true");
+    const clip = svgIn(svgIn(svg, "defs", {}), "clipPath", { id: "mr" + id });
+    svgIn(clip, "rect", { width: 200, height: 85, rx: 28 });
+    svgIn(svg, "rect", { class: "surface", width: 200, height: 85, rx: 28 });
+    const z = svgIn(svg, "g", { "clip-path": "url(#mr" + id + ")" });
+    svgIn(z, "rect", { width: 75, height: 85, fill: cA, opacity: .1 });
+    svgIn(z, "rect", { x: 125, width: 75, height: 85, fill: cH, opacity: .1 });
+    [[11, .5, "red"], [189, .5, "red"], [75, 1.6, "blue"], [125, 1.6, "blue"], [100, 1.6, "red"]].forEach(([x, w, c]) => svgIn(z, "line", { class: c, x1: x, x2: x, y1: 0, y2: 85, "stroke-width": w }));
+    svgIn(svg, "circle", { class: "blue", cx: 100, cy: 42.5, r: 15, fill: "none", "stroke-width": .6 });
+    svgIn(svg, "rect", { class: "boards", width: 200, height: 85, rx: 28 });
+    const per = a.curPer;
+    if (per) {
+      const now = per.elapsed;
+      per.ev.filter((e) => e.t > now - WINDOW && e.t <= now).forEach((e) => svgIn(svg, "circle", {
+        cx: (100 + e.dx).toFixed(1), cy: (42.5 - e.dy).toFixed(1), r: e.type === "goal" ? 5 : e.type.includes("shot") ? 3.8 : 2.8,
+        fill: e.home ? cH : cA, "fill-opacity": (1 - (now - e.t) / WINDOW * .7).toFixed(2), stroke: "var(--surface)", "stroke-width": .6,
+      }));
+      const raw = now > 0 && per.rawRoll.length ? per.rawRoll[Math.min(now, per.rawRoll.length) - 1] : 0;
+      const r = Math.round(raw * 100), x = 100 + raw * 89, col = r > 0 ? cH : r < 0 ? cA : "var(--muted)";
+      svgIn(svg, "line", { x1: x, x2: x, y1: 2, y2: 83, stroke: col, "stroke-width": 1.6, "stroke-dasharray": "3.5 2.5" });
+    }
+    return svg;
+  }
+  // the 2 min tilt over the whole game, home above the line, with goals and period breaks
+  function sparkline(a, cA, cH, id) {
+    const W = 300, H = 50, pad = 6;
+    const nums = a.nums.slice();
+    for (let n = 1; n <= 3; n++) if (!nums.includes(n)) nums.push(n);
+    nums.sort((x, y) => x - y);
+    const lenOf = (n) => (a.P[n] ? a.P[n].len : 1200), total = nums.reduce((s, n) => s + lenOf(n), 0);
+    const xs = (sec) => (sec / total) * W, ys = (v) => H / 2 - Math.max(-1, Math.min(1, v)) * (H / 2 - pad);
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "spark"); svg.setAttribute("aria-hidden", "true");
+    const defs = svgIn(svg, "defs", {});
+    svgIn(svgIn(defs, "clipPath", { id: "st" + id }), "rect", { width: W, height: H / 2 });
+    svgIn(svgIn(defs, "clipPath", { id: "sb" + id }), "rect", { y: H / 2, width: W, height: H / 2 });
+    let off = 0, path = "";
+    const starts = {};
+    nums.forEach((n, i) => {
+      starts[n] = off;
+      if (i % 2) svgIn(svg, "rect", { x: xs(off), width: xs(lenOf(n)), height: H, fill: "var(--ink)", opacity: .04 });
+      const per = a.P[n];
+      if (per && per.roll.length) {
+        path += "M" + xs(off).toFixed(1) + " " + H / 2;
+        per.roll.forEach((v, k) => { if (k % 4 === 3 || k === per.roll.length - 1) path += "L" + xs(off + k + 1).toFixed(1) + " " + ys(v).toFixed(1); });
+        path += "L" + xs(off + per.roll.length).toFixed(1) + " " + H / 2 + "Z";
+      }
+      off += lenOf(n);
+    });
+    if (path) {
+      svgIn(svg, "path", { d: path, fill: cH, "fill-opacity": .55, stroke: cH, "stroke-width": .8, "clip-path": "url(#st" + id + ")" });
+      svgIn(svg, "path", { d: path, fill: cA, "fill-opacity": .55, stroke: cA, "stroke-width": .8, "clip-path": "url(#sb" + id + ")" });
+    }
+    svgIn(svg, "line", { x1: 0, x2: W, y1: H / 2, y2: H / 2, stroke: "var(--ink)", opacity: .4 });
+    nums.slice(1).forEach((n) => svgIn(svg, "line", { x1: xs(starts[n]), x2: xs(starts[n]), y1: 0, y2: H, stroke: "var(--ink)", opacity: .3 }));
+    a.nums.forEach((n) => a.P[n].goals.forEach((gl) => svgIn(svg, "circle", {
+      cx: xs(starts[n] + gl.t), cy: gl.home ? 3.5 : H - 3.5, r: 3, fill: gl.home ? cH : cA, stroke: "var(--surface)", "stroke-width": 1,
+    })));
+    if (!a.final && a.curPer) { const x = xs(starts[a.curPer.num] + a.curPer.elapsed); svgIn(svg, "line", { x1: x, x2: x, y1: 0, y2: H, stroke: "var(--ink)", "stroke-width": 1.2 }); }
+    return svg;
+  }
+  function tiltBlock(a, away, home, cA, cH) {
+    const box = elt("div", "ttilt");
+    const t = Math.round(a.tilt * 100), lead = t > 0 ? home : t < 0 ? away : null, lc = t > 0 ? cH : t < 0 ? cA : "var(--muted)";
+    const tv = elt("div", "tv"); tv.style.color = lc;
+    if (lead) { const src = logoFor(lead); if (src) { const i = elt("img"); i.alt = ""; i.src = src; i.onerror = () => i.remove(); tv.append(i); } }
+    tv.append(lead ? lead.abbrev + " " + Math.abs(t) : "Even");
+    const pill = elt("span", "pill", label(t)); pill.style.color = lead && Math.abs(t) >= 10 ? lc : "var(--muted)";
+    const bar = elt("div", "tmeter"), fi = elt("i"), w = Math.min(50, Math.abs(t) / 2);
+    fi.style.left = (t >= 0 ? 50 : 50 - w) + "%"; fi.style.width = w + "%"; fi.style.background = lc; bar.append(fi);
+    const g = Math.round(gameAvg(a) * 100);
+    const sub = elt("div", "sub", (adjusted ? "Adjusted 2 min · " : "Last 2 min · ") + "game " + (g === 0 ? "even" : (g > 0 ? home : away).abbrev + " " + Math.abs(g)));
+    box.append(tv, pill, bar, sub);
+    box.title = "Ice Tilt over the last 2 minutes of play";
+    return box;
+  }
+  function counters(T, best, cA, cH) {
+    const row = elt("div", "counts");
+    [["sog", "Shots"], ["att", "Attempts"], ["hits", "Hits"]].forEach(([k, name]) => {
+      const top = best[k] != null && T[k][0] + T[k][1] === best[k];
+      const cell = elt("div", "cnt" + (top ? " most" : ""));
+      if (top) cell.title = "Most " + name.toLowerCase() + " of any game on this date";
+      const v = elt("span", "cv"), x = elt("span", null, String(T[k][0])), y = elt("span", null, String(T[k][1]));
+      x.style.color = cA; y.style.color = cH;
+      v.append(x, "–", y);
+      cell.append(elt("span", "cl", name + (top ? " · most" : "")), v);
+      row.append(cell);
+    });
+    return row;
+  }
+  function goalLine(g, x, flashing, cA, cH) {
+    const isHome = x.teamAbbrev === g.homeTeam.abbrev, col = isHome ? cH : cA;
+    const row = elt("div", "gline");
+    const txt = elt("div", "gtxt"), top = elt("span");
+    const tot = x.goalsToDate ? " (" + x.goalsToDate + ")" : "";
+    top.append(elt("span", "gk", flashing ? "Goal " + x.teamAbbrev : "Last goal"), ((x.name && x.name.default) || "Unknown") + tot);
+    const kind = x.goalModifier === "empty-net" ? "EN" : x.strength === "pp" ? "PP" : x.strength === "sh" ? "SH" : "";
+    const assists = (x.assists || []).map((y) => y.name && y.name.default).filter(Boolean);
+    const sub = elt("span", "gsub", [ord(x.period, x.periodDescriptor && x.periodDescriptor.periodType) + " " + clk(x.timeInPeriod), kind, assists.length ? assists.join(", ") : "Unassisted"].filter(Boolean).join(" · "));
+    txt.append(top, sub);
+    row.append(avatar(x.mugshot, "", col), txt);
+    if (x.highlightClipSharingUrl) {
+      const l = elt("a", null, "▶ Watch"); l.href = x.highlightClipSharingUrl; l.target = "_blank"; l.rel = "noopener";
+      l.setAttribute("aria-label", "Watch " + ((x.name && x.name.default) || "the") + " goal");
+      row.append(l);
+    }
+    return row;
+  }
+
+  function renderTile(el, r, best) {
+    const { g, snap, syncing } = r, a = snap && snap.a, T = snap && snap.t;
+    const away = g.awayTeam, home = g.homeTeam, [cA, cH] = teamColors(away.abbrev, home.abbrev);
+    const live = syncing || isLive(g.gameState), fin = isFinal(g.gameState);
+    const goals = realGoals(g), last = goals[goals.length - 1];
+    const flashing = !!last && Date.now() - (goalFlash.get(goalKey(g, last)) || 0) < FLASH_MS;
+    el.className = "tile" + (flashing ? " flash" : "");
+    el.style.setProperty("--gc", last ? (last.teamAbbrev === home.abbrev ? cH : cA) : "var(--line)");
+    el.textContent = "";
+
+    // header: logos, score, clock; this link covers the whole tile
+    const st = tileStatus(g, syncing), showScore = !syncing && (live || fin);
+    const link = elt("a", "tlink"); link.href = "#" + g.id;
+    const side = (t, isHome) => {
+      const w = elt("span", "tteam" + (isHome ? " h" : ""));
+      const src = logoFor(t); if (src) { const i = elt("img"); i.alt = ""; i.src = src; i.onerror = () => i.remove(); w.append(i); }
+      const nm = elt("span", "nm"); nm.append(elt("span", "ab", t.abbrev));
+      if (!live && !fin && t.record) nm.append(elt("span", "rec", t.record));
+      w.append(nm);
+      if (showScore) w.append(elt("span", "sc", String(t.score || 0)));
+      return w;
+    };
+    const mid = elt("span", "tstat" + (st.on ? " on" : ""));
+    const tp = elt("span", "tp"); if (st.on) tp.append(elt("span", "dot on")); tp.append(st.small);
+    mid.append(elt("span", "tc", st.big), tp);
+    link.append(side(away, false), mid, side(home, true));
+    link.setAttribute("aria-label", away.abbrev + (showScore ? " " + (away.score || 0) : "") + " at " + home.abbrev + (showScore ? " " + (home.score || 0) : "") + ", " + [st.small, st.big].filter(Boolean).join(" ") + ". Open the game.");
+    const on = pinned(g), pin = elt("button", "pinbtn"); pin.type = "button";
+    pin.setAttribute("aria-pressed", String(on)); pin.title = on ? "Unpin" : "Pin to the top";
+    pin.setAttribute("aria-label", (on ? "Unpin " : "Pin ") + away.abbrev + " at " + home.abbrev);
+    pin.append(pinIcon(on)); pin.onclick = () => togglePin(g);
+    const head = elt("div", "thead"); head.append(link, pin);
+    el.append(head);
+
+    if (!live && !fin) {
+      const tv = (g.tvBroadcasts || []).map((b) => b.network).filter(Boolean).slice(0, 4).join(", ");
+      el.append(elt("p", "tmsg", [g.venue && g.venue.default, tv].filter(Boolean).join(" · ")));
+      return;
+    }
+
+    // tags: man advantage, late close game, a run of shots
+    const tags = elt("div", "tags");
+    const tag = (text, col, cls, title) => { const s = elt("span", "tag" + (cls ? " " + cls : ""), text); if (col) s.style.color = col; if (title) s.title = title; tags.append(s); };
+    if (a && live && !syncing) {
+      strengthTags(a, [cA, cH]).forEach((x) => tag(x.text, x.col, null, x.title));
+      const pd = g.periodDescriptor || {}, c = g.clock || {}, diff = Math.abs((away.score || 0) - (home.score || 0));
+      if (pd.periodType === "OT") tag("Overtime", null, "hot");
+      else if (pd.periodType === "SO") tag("Shootout", null, "hot");
+      else if (pd.number === 3 && diff <= 1 && !c.inIntermission && c.secondsRemaining != null && c.secondsRemaining <= 600) tag("Close & late", null, "hot", diff ? "One-goal game in the last 10 minutes" : "Tied in the last 10 minutes");
+      [0, 1].forEach((s) => { if (T.recent[s] >= 4) tag((s ? home : away).abbrev + " flurry · " + T.recent[s] + " shots", s ? cH : cA, null, T.recent[s] + " shots on goal in the last 2 minutes"); });
+    }
+    if (tags.childNodes.length) el.append(tags);
+
+    if (!a) {
+      el.append(elt("p", "tmsg", syncing || delay ? "Holding the feed to match your TV delay." : "Loading play-by-play…"));
+    } else {
+      if (live) { const m = elt("div", "tmid"); m.append(miniRink(a, cA, cH, g.id), tiltBlock(a, away, home, cA, cH)); el.append(m); }
+      el.append(sparkline(a, cA, cH, g.id));
+      if (fin) {
+        const t = Math.round(gameAvg(a) * 100), lead = t > 0 ? home : t < 0 ? away : null;
+        el.append(elt("p", "tmsg", "Game tilt: " + (lead ? lead.abbrev + " " + Math.abs(t) + " · " + label(t).toLowerCase() : "even") + (adjusted ? " (score-adjusted)" : "")));
+      }
+      el.append(counters(T, best, cA, cH));
+    }
+    if (last && !syncing) el.append(goalLine(g, last, flashing, cA, cH));
+  }
+
+  function renderTicker(rows) {
+    const now = Date.now(), items = [];
+    rows.forEach(({ g, syncing }) => {
+      if (syncing) return;
+      realGoals(g).forEach((x) => {
+        const k = goalKey(g, x);
+        // goals seen arriving sort by when they arrived; older ones by a rough guess at the wall clock
+        const guess = Date.parse(g.startTimeUTC) + (8 * 60 + (x.period - 1) * 38 * 60 + mmss(x.timeInPeriod) * 1.6) * 1000;
+        items.push({ g, x, at: goalFlash.get(k) || guess, fresh: now - (goalFlash.get(k) || 0) < FLASH_MS });
+      });
+    });
+    items.sort((p, q) => q.at - p.at);
+    const sig = items.map((i) => goalKey(i.g, i.x) + (i.fresh ? "!" : "") + (i.x.highlightClipSharingUrl ? "v" : "")).join() + dark();
+    if (sig === tickerSig) return;
+    tickerSig = sig;
+    const row = $("tickRow"), sl = row.scrollLeft; row.textContent = "";
+    $("ticker").hidden = !items.length;
+    items.forEach(({ g, x, fresh }) => {
+      const [cA, cH] = teamColors(g.awayTeam.abbrev, g.homeTeam.abbrev), col = x.teamAbbrev === g.homeTeam.abbrev ? cH : cA;
+      const chip = elt("a", "tick" + (fresh ? " fresh" : ""));
+      chip.style.setProperty("--gc", col);
+      if (x.highlightClipSharingUrl) { chip.href = x.highlightClipSharingUrl; chip.target = "_blank"; chip.rel = "noopener"; chip.title = "Watch the highlight"; }
+      else { chip.href = "#" + g.id; chip.title = "Open the game"; }
+      const who = elt("b", null, x.teamAbbrev); who.style.color = col;
+      const per = ord(x.period, x.periodDescriptor && x.periodDescriptor.periodType) + " " + clk(x.timeInPeriod);
+      chip.append(avatar(x.mugshot, "", col), who, ((x.name && x.name.default) || "Unknown"),
+        elt("small", null, g.awayTeam.abbrev + " " + x.awayScore + "–" + x.homeScore + " " + g.homeTeam.abbrev + " · " + per + (x.highlightClipSharingUrl ? " · ▶" : "")));
+      row.append(chip);
+    });
+    row.scrollLeft = sl;
+  }
+
+  function renderHome() {
+    if (view !== "home") return;
+    const rows = scoreRows();
+    rows.forEach((r) => { r.snap = r.syncing ? null : homeSnap(r.g.id); });
+    trackGoals(rows);
+    // a redraw or a move between sections drops keyboard focus; note it to put it back
+    const fe = document.activeElement, fTile = fe && fe.closest && fe.closest(".tile"), fPin = !!fTile && fe.classList.contains("pinbtn");
+    // the busiest game on the date for each counter
+    const best = {}, counted = rows.filter((r) => r.snap);
+    if (counted.length > 1) ["sog", "att", "hits"].forEach((k) => { const m = Math.max(...counted.map((r) => r.snap.t[k][0] + r.snap.t[k][1])); if (m > 0) best[k] = m; });
+
+    const groups = { Pinned: [], Live: [], Later: [], Final: [] };
+    const stage = (r) => r.syncing || isLive(r.g.gameState) ? "Live" : isFinal(r.g.gameState) ? "Final" : "Later";
+    rows.forEach((r) => groups[pinned(r.g) ? "Pinned" : stage(r)].push(r));
+    // pinned: live first, then later, then final
+    const rank = { Live: 0, Later: 1, Final: 2 };
+    groups.Pinned.sort((p, q) => rank[stage(p)] - rank[stage(q)]);
+    const minute = Math.floor(Date.now() / 60000);
+    Object.keys(groups).forEach((name) => {
+      const box = $("tiles" + name), list = groups[name];
+      $("sec" + name).hidden = !list.length;
+      const els = list.map((r) => {
+        const id = "tile-" + r.g.id;
+        let el = document.getElementById(id);
+        if (!el) { el = elt("article"); el.id = id; }
+        const last = realGoals(r.g).slice(-1)[0];
+        const sig = [r.snap ? r.snap.ts : 0, r.syncing, pinned(r.g), adjusted, dark(), delay > 0, minute * !isLive(r.g.gameState),
+          last ? Date.now() - (goalFlash.get(goalKey(r.g, last)) || 0) < FLASH_MS : 0, best.sog, best.att, best.hits,
+          JSON.stringify([r.g.gameState, r.g.clock, r.g.periodDescriptor, r.g.awayTeam.score, r.g.homeTeam.score, realGoals(r.g).map((x) => x.highlightClipSharingUrl ? 1 : 0)])].join("|");
+        if (tileSigs.get(r.g.id) !== sig) { tileSigs.set(r.g.id, sig); renderTile(el, r, best); }
+        return el;
+      });
+      // only move tiles when a section's lineup changes, so hover isn't disturbed
+      if (els.length !== box.children.length || els.some((e, i) => box.children[i] !== e)) box.replaceChildren(...els);
+    });
+    if (fTile && fTile.isConnected && !fTile.contains(document.activeElement)) fTile.querySelector(fPin ? ".pinbtn" : ".tlink").focus({ preventScroll: true });
+    $("homeEmpty").hidden = !!games.length || !$("err").hidden;
+    renderTicker(rows);
+
+    const sum = $("homeSum"); sum.textContent = "";
+    const [y, m, d] = dateStr.split("-").map(Number);
+    sum.append(new Date(y, m - 1, d).toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" }) + " · " + games.length + (games.length === 1 ? " game" : " games"));
+    const nLive = rows.filter((r) => stage(r) === "Live").length;
+    if (nLive) { sum.append(" · "); sum.append(elt("b", null, nLive + " live")); }
+  }
+
   /* ---------- controls ---------- */
   [300, 600].forEach((w) => {
     const b = $("tog" + w);
@@ -1633,6 +2231,7 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
     try { localStorage.setItem(ADJ_KEY, adjusted ? "1" : "0"); } catch (e) {}
     markMode();
     if (lastData) render(analyze(lastData));
+    renderHome();
   };
   const delaySel = $("delay");
   if (![...delaySel.options].some((o) => +o.value === delay)) { const o = document.createElement("option"); o.value = delay; o.textContent = delay + " s"; delaySel.append(o); }
@@ -1646,14 +2245,14 @@ th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
     // shorter delay jumps ahead right away; longer delay holds the screen until the buffer catches up
     showDelayed(); lastChipSnap = null; renderStatus();
   };
-  const shiftDay = (n) => { const [y, m, d] = dateStr.split("-").map(Number); const dt = new Date(y, m - 1, d + n); dateStr = localDate(dt); gameId = null; history.replaceState(null, "", location.pathname); lastData = null; resetGameBuf(); loadGames(); };
+  const shiftDay = (n) => { const [y, m, d] = dateStr.split("-").map(Number); const dt = new Date(y, m - 1, d + n); dateStr = localDate(dt); gameId = null; history.replaceState(null, "", location.pathname); lastData = null; resetGameBuf(); resetHome(); loadGames(); };
   $("prevDay").onclick = () => shiftDay(-1);
   $("nextDay").onclick = () => shiftDay(1);
-  $("date").onchange = (e) => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { dateStr = e.target.value; gameId = null; lastData = null; resetGameBuf(); loadGames(); } };
+  $("date").onchange = (e) => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { dateStr = e.target.value; gameId = null; history.replaceState(null, "", location.pathname); lastData = null; resetGameBuf(); resetHome(); loadGames(); } };
   let rt;
   if (window.ResizeObserver) new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { if (lastData) renderChart(analyze(lastData)); }, 100); }).observe($("chartbox"));
   window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (lastData) renderChart(analyze(lastData)); }, 150); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderGames(); if (lastData) render(analyze(lastData)); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderGames(); renderHome(); if (lastData) render(analyze(lastData)); });
 
   loadGames();
   setInterval(() => { if (!games.length) loadGames(); }, 30000);
