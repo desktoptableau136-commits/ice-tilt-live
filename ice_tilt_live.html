@@ -61,6 +61,10 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 .clock { font-family: var(--f-mono); font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
 .pstate { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
 .pstate.live { color: var(--live); }
+/* final games: the loser fades and a caret points at the winner's score */
+.wmark { flex: none; font-size: 14px; line-height: 1; color: var(--ink); }
+.side.lost .score, .side.lost .tname { color: var(--muted); }
+.side.lost .tlogo, .side.lost .swatch { opacity: .45; }
 
 .main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 #rink { width: 100%; height: auto; display: block; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
@@ -184,6 +188,8 @@ tr.total td { font-weight: 500; border-bottom: none; }
 table.lscore { min-width: 0; }
 .lscore td:last-child, .lscore th:last-child { color: var(--muted); }
 .lscore .tot { font-weight: 600; color: var(--ink); }
+.lscore tr.lost td { color: var(--muted); }
+.lscore tr.lost img { opacity: .45; }
 .trow { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center; gap: 8px; font-size: 13px; padding: 0 10px; }
 .trow b { font-family: var(--f-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
 .trow b:last-child { text-align: right; }
@@ -268,6 +274,9 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 .tteam .rec { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tteam .sc { font-family: var(--f-display); font-weight: 700; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; margin-inline: auto 2px; }
 .tteam.h .sc { margin-inline: 2px auto; }
+.tteam .wmark { font-size: 11px; }
+.tteam.lost .ab, .tteam.lost .sc { color: var(--muted); }
+.tteam.lost img { opacity: .45; }
 .tstat { display: grid; justify-items: center; text-align: center; }
 .tstat .tc { font-family: var(--f-mono); font-size: 18px; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tstat .tp { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
@@ -461,12 +470,14 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       <img class="tlogo" id="logoA" alt="" hidden>
       <div><div class="tname" id="nameA">—</div><div class="tsub" id="subA"></div></div>
       <div class="score" id="scoreA">0</div>
+      <span class="wmark" id="winA" title="Winner" hidden>◀</span>
     </div>
     <div class="centerbox">
       <div class="clock" id="clock">--:--</div>
       <div class="pstate" id="pstate">Pick a game</div>
     </div>
     <div class="side home">
+      <span class="wmark" id="winH" title="Winner" hidden>▶</span>
       <div class="score" id="scoreH">0</div>
       <div><div class="tname" id="nameH">—</div><div class="tsub" id="subH"></div></div>
       <img class="tlogo" id="logoH" alt="" hidden>
@@ -949,9 +960,16 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     renderChart(a); flushStats(); renderStatus();
   }
 
+  // the side that won a finished game: 0 away, 1 home, null while it's going or tied
+  const winnerOf = (g) => /FINAL|OFF/.test(g.gameState) && g.awayTeam.score != null && g.awayTeam.score !== g.homeTeam.score ? +(g.homeTeam.score > g.awayTeam.score) : null;
+
   // scoreboard: the live state, or the score and clock at the moment being replayed
   function renderBoard(a, v) {
     const d = a.d, away = d.awayTeam, home = d.homeTeam;
+    const w = v.rewound ? null : winnerOf(d);
+    document.querySelector(".side.away").classList.toggle("lost", w === 1);
+    document.querySelector(".side.home").classList.toggle("lost", w === 0);
+    $("winA").hidden = w !== 0; $("winH").hidden = w !== 1;
     const nm = (t) => (t.commonName && t.commonName.default) || (t.name && t.name.default) || t.abbrev;
     $("subA").textContent = nm(away) + (v.sog[0] != null ? " · " + v.sog[0] + " SOG" : "");
     $("subH").textContent = (v.sog[1] != null ? v.sog[1] + " SOG · " : "") + nm(home);
@@ -1486,9 +1504,9 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       const cols = nums.map((n) => ord(n, a.P[n].type)).concat(so ? ["SO"] : [], ["T", "SOG"]);
       const hr = elt("tr"); ["", ...cols].forEach((c) => hr.append(elt("th", null, c)));
       const thd = elt("thead"); thd.append(hr); t.append(thd);
-      const tb = elt("tbody");
+      const tb = elt("tbody"), win = vw.rewound ? null : winnerOf(d);
       [[away, false], [home, true]].forEach(([team, isHome]) => {
-        const row = elt("tr");
+        const row = elt("tr", win != null && win !== +isHome ? "lost" : null);
         const name = elt("td"), lg = teamLogo(team); fill(name, typeof lg === "string" ? lg : [lg, team.abbrev]); row.append(name);
         let sum = 0;
         nums.forEach((n) => { const g = a.P[n].goals.filter((x) => x.home === isHome && vw.upTo(n, x.t)).length; sum += g; row.append(elt("td", null, g)); });
@@ -2067,21 +2085,23 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 
     // header: logos, score, clock; this link covers the whole tile
     const st = tileStatus(g, syncing), showScore = !syncing && (live || fin);
+    const win = syncing ? null : winnerOf(g);
     const link = elt("a", "tlink"); link.href = "#" + g.id;
     const side = (t, isHome) => {
-      const w = elt("span", "tteam" + (isHome ? " h" : ""));
+      const w = elt("span", "tteam" + (isHome ? " h" : "") + (win != null ? win === +isHome ? " won" : " lost" : ""));
       const src = logoFor(t); if (src) { const i = elt("img"); i.alt = ""; i.src = src; i.onerror = () => i.remove(); w.append(i); }
       const nm = elt("span", "nm"); nm.append(elt("span", "ab", t.abbrev));
       if (!live && !fin && t.record) nm.append(elt("span", "rec", t.record));
       w.append(nm);
       if (showScore) w.append(elt("span", "sc", String(t.score || 0)));
+      if (win === +isHome) { const mk = elt("span", "wmark", isHome ? "▶" : "◀"); mk.title = "Winner"; w.append(mk); }
       return w;
     };
     const mid = elt("span", "tstat" + (st.on ? " on" : ""));
     const tp = elt("span", "tp"); if (st.on) tp.append(elt("span", "dot on")); tp.append(st.small);
     mid.append(elt("span", "tc", st.big), tp);
     link.append(side(away, false), mid, side(home, true));
-    link.setAttribute("aria-label", away.abbrev + (showScore ? " " + (away.score || 0) : "") + " at " + home.abbrev + (showScore ? " " + (home.score || 0) : "") + ", " + [st.small, st.big].filter(Boolean).join(" ") + ". Open the game.");
+    link.setAttribute("aria-label", away.abbrev + (showScore ? " " + (away.score || 0) : "") + " at " + home.abbrev + (showScore ? " " + (home.score || 0) : "") + ", " + [st.small, st.big].filter(Boolean).join(" ") + (win != null ? ", " + (win ? home : away).abbrev + " won" : "") + ". Open the game.");
     const on = pinned(g), pin = elt("button", "pinbtn"); pin.type = "button";
     pin.setAttribute("aria-pressed", String(on)); pin.title = on ? "Unpin" : "Pin to the top";
     pin.setAttribute("aria-label", (on ? "Unpin " : "Pin ") + away.abbrev + " at " + home.abbrev);
