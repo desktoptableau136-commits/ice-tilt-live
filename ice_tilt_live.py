@@ -26,6 +26,9 @@ CACHE_SECONDS = 5
 ROUTES = [
     (re.compile(r"^/api/score/(\d{4}-\d{2}-\d{2})$"), "score/{}"),
     (re.compile(r"^/api/pbp/(\d{10})$"), "gamecenter/{}/play-by-play"),
+    (re.compile(r"^/api/box/(\d{10})$"), "gamecenter/{}/boxscore"),
+    (re.compile(r"^/api/rail/(\d{10})$"), "gamecenter/{}/right-rail"),
+    (re.compile(r"^/api/shifts/(\d{10})$"), "https://api.nhle.com/stats/rest/en/shiftcharts?cayenneExp=gameId={}"),
 ]
 
 _cache = {}
@@ -38,7 +41,8 @@ def fetch(path):
         hit = _cache.get(path)
         if hit and now - hit[0] < CACHE_SECONDS:
             return hit[1]
-    req = urllib.request.Request(API + path, headers={"User-Agent": "ice-tilt-live/1.0"})
+    url = path if path.startswith("https://") else API + path
+    req = urllib.request.Request(url, headers={"User-Agent": "ice-tilt-live/1.0"})
     with urllib.request.urlopen(req, timeout=10) as resp:
         body = resp.read()
     with _lock:

@@ -77,7 +77,14 @@ h1 { font-size: 30px; } h2 { font-size: 24px; } h3 { font-size: 18px; }
 .tiltnum .abbr { font-family: var(--f-display); font-size: 34px; font-weight: 700; line-height: 1; }
 .tiltnum .big { font-family: var(--f-display); font-size: 76px; font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums; }
 .pill { display: inline-block; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; }
-.verdict { font-size: 16px; font-weight: 500; margin: 0; }
+.pill[hidden] { display: none; }
+.pill.ctx { color: var(--muted); border-style: dashed; }
+/* the tilt number and its tags stay on one line */
+.tiltnum { flex-wrap: nowrap; gap: 8px; min-width: 0; }
+.tiltnum .pill { white-space: nowrap; flex: none; }
+@media (max-width: 420px) { .tiltnum .pill { font-size: 11px; padding: 2px 6px; letter-spacing: .06em; } }
+/* always two lines tall, so the meter below doesn't jump as the message changes during replay */
+.verdict { font-size: 16px; font-weight: 500; margin: 0; line-height: 1.4; min-height: 2.8em; }
 .meter { position: relative; height: 34px; border-radius: 6px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); }
 .meter .half { opacity: .16; }
 .meter .fill { position: absolute; top: 0; bottom: 0; transition: left .6s, width .6s; }
@@ -155,6 +162,66 @@ th { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .
 td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 tr.total td { font-weight: 500; border-bottom: none; }
 
+/* stats panel tabs: by period, box score, players */
+.pane[hidden] { display: none !important; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+.tab { border: 0; background: none; padding: 2px 8px 3px; font-family: var(--f-display); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--muted); border-bottom: 2px solid transparent; }
+.tab:first-child { padding-left: 0; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.teamswitch { display: inline-flex; gap: 6px; }
+.teamswitch[hidden] { display: none; }
+.tsw { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 2px 10px 2px 4px; font-family: var(--f-display); font-weight: 700; font-size: 14px; }
+.tsw img { width: 20px; height: 20px; object-fit: contain; }
+.tsw[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.av { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--boards); background: var(--ice); overflow: hidden; flex: none; display: inline-grid; place-items: center; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.av.lg { width: 38px; height: 38px; }
+/* NHL headshots have a lot of space around the head; zoom in so the face fills the circle */
+.av img { position: absolute; left: -20%; top: -6%; width: 140%; height: 140%; object-fit: cover; object-position: center top; }
+.boxgrid { display: grid; gap: 14px 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); align-items: start; }
+.boxgrid > .full { grid-column: 1 / -1; }
+.boxgrid section { display: grid; gap: 6px; min-width: 0; }
+table.lscore { min-width: 0; }
+.lscore td:last-child, .lscore th:last-child { color: var(--muted); }
+.lscore .tot { font-weight: 600; color: var(--ink); }
+.trow { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center; gap: 8px; font-size: 13px; padding: 0 10px; }
+.trow b { font-family: var(--f-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.trow b:last-child { text-align: right; }
+.trow .tl { display: grid; gap: 3px; text-align: center; color: var(--muted); }
+.tbar { display: flex; gap: 2px; height: 5px; }
+.tbar i { border-radius: 3px; min-width: 2px; }
+.grow { display: grid; grid-template-columns: 38px 22px 38px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.grow:last-child { border-bottom: none; }
+.grow .gt { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.grow .gw { min-width: 0; }
+.grow .gn { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow .gn a { color: inherit; }
+.grow .ga { color: var(--muted); font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow .gs { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grow .gs small { display: block; font-family: var(--f-body); color: var(--muted); font-size: 11px; }
+.gper { margin-top: 4px; }
+table.stbl { min-width: 520px; }
+.stbl thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.stbl td:first-child, .stbl th:first-child { position: sticky; left: 0; background: var(--surface); }
+.stbl th:first-child { z-index: 2; }
+.stbl td { padding-top: 4px; padding-bottom: 4px; }
+.stbl .pname { font-family: var(--f-body); font-weight: 500; }
+.stbl .pnum, .stbl .ppos { color: var(--muted); font-size: 12px; }
+.stbl .lead { font-weight: 600; color: var(--ink); }
+.stbl td.dim { color: var(--muted); }
+.sortbtn { border: 0; background: none; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+th[aria-sort] .sortbtn { color: var(--ink); }
+th[aria-sort="descending"] .sortbtn::after { content: " ↓"; }
+th[aria-sort="ascending"] .sortbtn::after { content: " ↑"; }
+.subhead { margin: 10px 0 4px; }
+.periodhead { margin-top: 4px; }
+/* rewound, the header holds the time and Back button on one row; the eyebrow would only repeat itself */
+.meterhead { flex-wrap: nowrap; }
+.meterhead h2 { white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.meterhead .eyebrow, .meterhead .btn { flex: none; white-space: nowrap; }
+#meterMode.rewind { display: none; }
+.hint.asof { margin: 0 0 8px; color: var(--focus); }
+
 .explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; }
 .explain article { display: grid; gap: 8px; align-content: start; }
 .explain p, .explain li { margin: 0; max-width: 65ch; }
@@ -171,9 +238,9 @@ tr.total td { font-weight: 500; border-bottom: none; }
   html, body { height: 100%; overflow: hidden; }
   .wrap {
     height: 100%; max-width: none; padding: 10px 16px; gap: 10px;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, .9fr) minmax(0, 1.15fr);
     grid-template-rows: auto auto minmax(0, 1.3fr) minmax(0, 1fr);
-    grid-template-areas: "top top" "board board" "rink meter" "chart table";
+    grid-template-areas: "top top top" "board board board" "rink meter stats" "chart meter stats";
   }
   .main { display: contents; }
   .top { grid-area: top; flex-wrap: nowrap; align-items: center; gap: 16px; }
@@ -194,22 +261,33 @@ tr.total td { font-weight: 500; border-bottom: none; }
   .panel > * { flex: none; }
   h2 { font-size: 19px; }
   .main > .panel:first-child { grid-area: rink; }
-  .main > .panel:last-child { grid-area: meter; justify-content: space-between; gap: 6px; }
+  .main > .panel:last-child { grid-area: meter; gap: 8px; }
+  .main > .panel:last-child .status { margin-top: auto; }
   .win { padding: 5px 9px 6px; }
   #rink { flex: 1 1 auto; min-height: 0; width: 100%; height: 100%; }
   .legend { font-size: 12px; gap: 10px; }
   .tiltnum .big { font-size: clamp(40px, 7vh, 72px); }
   .tiltnum .abbr { font-size: 28px; }
+  .tiltnum .pill { font-size: 11px; padding: 2px 7px; letter-spacing: .06em; }
+  .mlogo { width: 36px; height: 36px; }
   .verdict { font-size: 15px; }
   .win .wv { font-size: 22px; }
   .chartpanel { grid-area: chart; }
   #chartbox { flex: 1 1 0; min-height: 0; position: relative; }
   #chartbox #chart { position: absolute; inset: 0; height: 100%; }
-  .tablepanel { grid-area: table; }
+  .tablepanel { grid-area: stats; }
+  .tablewrap.periodwrap { flex: 0 1 auto; }
+  .periodwrap table { font-size: 12px; }
+  .periodwrap th, .periodwrap td { padding: 4px 3px; letter-spacing: .02em; }
+  .periodwrap .tblogo { width: 18px; height: 18px; }
+  .stbl th, .stbl td { padding-left: 5px; padding-right: 5px; }
+  .stbl .av { width: 24px; height: 24px; }
   .tablewrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
   table { min-width: 0; font-size: 13px; }
   th, td { padding: 5px 8px; }
   th { font-size: 12px; }
+  .tab { font-size: 18px; }
+  table.stbl { min-width: 0; }
   .error { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 5; max-width: min(90vw, 640px); box-shadow: 0 6px 24px rgba(0,0,0,.2); }
   .how { position: fixed; inset: 8vh 50% auto auto; transform: translateX(50%); width: min(1000px, 92vw); max-height: 84vh; overflow: auto; z-index: 11; box-shadow: 0 12px 48px rgba(0,0,0,.3); display: grid; }
   .how:not(.open) { display: none; }
@@ -250,6 +328,12 @@ tr.total td { font-weight: 500; border-bottom: none; }
           <option value="30">30 s</option>
           <option value="45">45 s</option>
           <option value="60">60 s</option>
+        </select>
+      </label>
+      <label class="delaybox" for="tiltMode" title="Score-adjusted takes away the push a trailing team usually gets, based on every game last season">Tilt
+        <select id="tiltMode">
+          <option value="raw">Raw</option>
+          <option value="adj">Score-adjusted</option>
         </select>
       </label>
       <button class="btn" id="howBtn" type="button" aria-expanded="false" aria-controls="how">How it works</button>
@@ -317,18 +401,23 @@ tr.total td { font-weight: 500; border-bottom: none; }
     </section>
 
     <section class="panel" aria-labelledby="meterTitle">
-      <div class="panel-head">
+      <div class="panel-head meterhead">
         <h2 id="meterTitle">Ice Tilt</h2>
         <span class="eyebrow" id="meterMode">Last 2 min of play</span>
         <button class="btn small" id="backLive" type="button" hidden>Back to live</button>
       </div>
-      <div class="tiltnum"><img class="mlogo" id="tiltLogo" alt="" hidden><span class="abbr" id="tiltAbbr"></span><span class="big" id="tiltBig">0</span><span class="pill" id="tiltPill">Even</span></div>
+      <div class="tiltnum"><img class="mlogo" id="tiltLogo" alt="" hidden><span class="abbr" id="tiltAbbr"></span><span class="big" id="tiltBig">0</span><span class="pill" id="tiltPill">Even</span><span class="pill ctx" id="ctxPill" hidden></span></div>
       <p class="verdict" id="verdict">Waiting for game data.</p>
       <div>
         <div class="meter"><div class="half" id="meterL"></div><div class="half" id="meterR"></div><div class="fill" id="meterFill"></div><div class="mid"></div></div>
         <div class="meter-labels"><span id="mlL">←</span><span>Even</span><span id="mlR">→</span></div>
       </div>
       <div class="windows" id="windows" aria-label="Ice Tilt over the last 5 and 10 minutes"></div>
+      <h3 class="periodhead" id="tableTitle">By period</h3>
+      <div class="tablewrap periodwrap">
+        <table id="ptable" aria-labelledby="tableTitle"></table>
+        <p class="hint">Zone = events past that team's attacking blue line. Shots and goals read away–home.</p>
+      </div>
       <p class="status"><span class="dot" id="dot"></span><span id="status">Not loaded</span></p>
     </section>
   </div>
@@ -346,10 +435,16 @@ tr.total td { font-weight: 500; border-bottom: none; }
     <div id="chartbox"><svg id="chart" tabindex="0" aria-label="Ice Tilt timeline. Drag, or use the arrow keys, to rewind. Escape returns to live."></svg><div class="tip" id="tip" role="tooltip" hidden></div></div>
   </section>
 
-  <section class="panel tablepanel" aria-labelledby="tableTitle">
-    <h2 id="tableTitle">By period</h2>
-    <div class="tablewrap"><table id="ptable"></table></div>
-    <p class="hint">Zone = events past that team's attacking blue line. Shots and goals read away–home.</p>
+  <section class="panel tablepanel" aria-label="Game stats">
+    <div class="panel-head">
+      <div class="tabs" role="tablist" aria-label="Game stats">
+        <button class="tab" role="tab" type="button" id="tab-box" aria-controls="pane-box" data-tab="box">Box score</button>
+        <button class="tab" role="tab" type="button" id="tab-players" aria-controls="pane-players" data-tab="players">Players</button>
+      </div>
+      <span class="teamswitch" id="teamSwitch" role="group" aria-label="Team" hidden></span>
+    </div>
+    <div class="tablewrap pane" id="pane-box" role="tabpanel" aria-labelledby="tab-box"></div>
+    <div class="tablewrap pane" id="pane-players" role="tabpanel" aria-labelledby="tab-players" hidden></div>
   </section>
 
   <div class="scrim" id="scrim" hidden></div>
@@ -378,8 +473,9 @@ tr.total td { font-weight: 500; border-bottom: none; }
         </div>
         <ul>
           <li>The 5 and 10 minute boxes use the same method over longer windows. When a short window disagrees with a long one, a team is pushing against the run of play.</li>
-          <li>Power plays (shaded on the chart) tilt the ice by design.</li>
-          <li>The trailing team usually gains tilt late in games as the leader sits back.</li>
+          <li>Power plays (PP) and a pulled goalie (EN) are shaded on the chart. Both are a man advantage, so they tilt the ice by design.</li>
+          <li>The trailing team usually gains tilt late in games as the leader sits back. When that's happening, the verdict says so and a <b>Score effect</b> tag appears next to the number.</li>
+          <li><b>Score-adjusted</b> (Tilt menu, top bar) takes that push away. Every game of the 2025–26 regular season was run through this same method to find the average tilt for a team down 1, or down 2 or more, at each minute of regulation. That expected tilt is subtracted second by second, so a team that's merely chasing reads near even, and a team out-playing the situation still stands out. Home ice is averaged out. The rink always shows raw position.</li>
           <li>Tilt is not shots. Compare the two in the period table.</li>
         </ul>
       </article>
@@ -434,6 +530,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   let gameId = (location.hash.match(/^#(\d{10})$/) || [])[1] || null;
   let dateStr = localDate(new Date());
   let lastData = null, lastFetch = 0, timer = null, games = [];
+  let lastBox = null, lastRail = null;
   // TV delay: keep recent feed snapshots and show the newest one at least `delay` seconds old
   const DELAY_KEY = "icetilt.delay";
   let delay = 0;
@@ -528,10 +625,15 @@ tr.total td { font-weight: 500; border-bottom: none; }
     clearTimeout(timer);
     const id = gameId;
     try {
-      const d = await getJSON("/api/pbp/" + id);
+      // box score and team stats ride in the same snapshot so the TV delay holds them back too
+      const [d, box, rail] = await Promise.all([
+        getJSON("/api/pbp/" + id),
+        getJSON("/api/box/" + id).catch(() => null),
+        getJSON("/api/rail/" + id).catch(() => null),
+      ]);
       if (id !== gameId) return;
       latestState = d.gameState;
-      pushSnap(pbpBuf, { ts: Date.now(), d });
+      pushSnap(pbpBuf, { ts: Date.now(), d, box, rail });
       showError("");
       showDelayed();
     } catch (e) {
@@ -543,7 +645,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   async function refreshScoreQuietly() {
     try { games = (await getJSON("/api/score/" + dateStr)).games || games; pushSnap(scoreBuf, { ts: Date.now(), games }); renderGames(); } catch (e) {}
   }
-  function resetGameBuf() { pbpBuf = []; shownSnap = null; latestState = null; }
+  function resetGameBuf() { pbpBuf = []; shownSnap = null; latestState = null; lastBox = null; lastRail = null; }
   // A finished game has nothing to spoil, so it skips the delay.
   function showDelayed() {
     if (!pbpBuf.length) return;
@@ -551,7 +653,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     let snap = /FINAL|OFF/.test(newest.d.gameState) && !(shownSnap && /LIVE|CRIT/.test(shownSnap.d.gameState)) ? newest : pickSnap(pbpBuf);
     if (!snap) { renderStatus(); return; } // nothing old enough yet: keep what's on screen
     if (snap === shownSnap) return;
-    shownSnap = snap; lastData = snap.d; lastFetch = snap.ts;
+    shownSnap = snap; lastData = snap.d; lastFetch = snap.ts; lastBox = snap.box; lastRail = snap.rail;
     render(analyze(snap.d));
   }
   let lastChipSnap = null;
@@ -566,18 +668,28 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const otLen = d.gameType === 3 ? 1200 : 300;
     const plays = (d.plays || []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
     const P = {};
+    const newPeriod = (num, type) => ({ num, type, len: type === "OT" ? otLen : 1200, raw: [], goals: [], pens: [], en: [], shotT: [], openEN: [null, null], end: null, votes: 0, shots: [0, 0], oz: [0, 0] });
     const cur = d.periodDescriptor || { number: 1, periodType: "REG" };
     const names = {};
     const heads = {};
     (d.rosterSpots || []).forEach((r) => { if (r.headshot) heads[r.playerId] = r.headshot; });
     (d.rosterSpots || []).forEach((r) => { names[r.playerId] = ((r.firstName && r.firstName.default) || "") + " " + ((r.lastName && r.lastName.default) || ""); });
+    const teamOf = {}, isGoalie = {};
+    (d.rosterSpots || []).forEach((r) => { teamOf[r.playerId] = r.teamId === homeId ? 1 : 0; if (r.positionCode === "G") isGoalie[r.playerId] = true; });
     const who = (id, total) => id ? (names[id] || "Unknown player").trim() + (total ? " (" + total + ")" : "") : null;
     for (const p of plays) {
       const pd = p.periodDescriptor; if (!pd || pd.periodType === "SO") continue;
-      const per = P[pd.number] || (P[pd.number] = { num: pd.number, type: pd.periodType, len: pd.periodType === "OT" ? otLen : 1200, raw: [], goals: [], pens: [], end: null, votes: 0, shots: [0, 0], oz: [0, 0] });
+      const per = P[pd.number] || (P[pd.number] = newPeriod(pd.number, pd.periodType));
       const t = mmss(p.timeInPeriod);
       const det = p.details || {};
       const isHome = det.eventOwnerTeamId === homeId;
+      // goalie pulled: situation code is away goalie, away skaters, home skaters, home goalie
+      const sit = p.situationCode;
+      if (sit && sit.length === 4) [0, 1].forEach((s) => {
+        const out = sit[s ? 3 : 0] === "0", open = per.openEN[s];
+        if (out) { if (open) open.end = t; else per.openEN[s] = { t, end: t, homeEN: !!s }; }
+        else if (open) { per.en.push(open); per.openEN[s] = null; }
+      });
       if (p.typeDescKey === "period-end") per.end = t;
       if (p.typeDescKey === "goal") {
         const sc = (p.situationCode || "1551").split("");
@@ -590,10 +702,12 @@ tr.total td { font-weight: 500; border-bottom: none; }
           shot: det.shotType || "",
           away: det.awayScore, homeScore: det.homeScore,
           strength: oppGoalie === "0" ? "Empty net" : us > them ? "Power play" : us < them ? "Shorthanded" : "",
+          // a power-play goal doesn't count for plus-minus (an extra attacker for a pulled goalie does)
+          ppGoal: us > them && (isHome ? sc[3] : sc[0]) === "1",
           clip: det.highlightClipSharingUrl || null,
         });
       }
-      if (p.typeDescKey === "goal" || p.typeDescKey === "shot-on-goal") per.shots[isHome ? 1 : 0]++;
+      if (p.typeDescKey === "goal" || p.typeDescKey === "shot-on-goal") { per.shots[isHome ? 1 : 0]++; per.shotT.push({ t, home: isHome }); }
       if (p.typeDescKey === "penalty" && ["MIN", "MAJ", "BEN"].includes(det.typeCode)) per.pens.push({ t, dur: (det.duration || 2) * 60, homePP: !isHome });
       if (typeof det.xCoord === "number") {
         per.raw.push({ t, x: det.xCoord, y: det.yCoord || 0, side: p.homeTeamDefendingSide || null, home: isHome, type: p.typeDescKey, zone: det.zoneCode });
@@ -604,8 +718,9 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const final = /FINAL|OFF/.test(d.gameState);
     // a period that just started has no events yet; give it an empty entry so tilt restarts at even
     if (!final && /LIVE|CRIT/.test(d.gameState) && cur.periodType !== "SO" && !P[cur.number])
-      P[cur.number] = { num: cur.number, type: cur.periodType, len: cur.periodType === "OT" ? otLen : 1200, raw: [], goals: [], pens: [], end: null, votes: 0, shots: [0, 0], oz: [0, 0] };
+      P[cur.number] = newPeriod(cur.number, cur.periodType);
     const nums = Object.keys(P).map(Number).sort((a, b) => a - b);
+    let margin = 0; // home goals minus away goals, carried across periods
     for (const n of nums) {
       const per = P[n];
       const fallbackSide = per.votes >= 0 ? "left" : "right"; // home attacking +x means home defends left
@@ -619,6 +734,10 @@ tr.total td { font-weight: 500; border-bottom: none; }
       if (per.end != null) per.elapsed = per.end;
       else if (n === cur.number && !final) per.elapsed = Math.max(0, per.len - ((d.clock && d.clock.secondsRemaining) != null ? d.clock.secondsRemaining : per.len));
       else per.elapsed = per.raw.length ? per.raw[per.raw.length - 1].t : per.len;
+      // a goalie still pulled in the live period stays pulled up to now
+      per.openEN.forEach((o) => { if (!o) return; if (n === cur.number && !final && per.end == null) o.end = Math.max(o.end, per.elapsed); per.en.push(o); });
+      // drop blips: the goalie also leaves for an extra attacker during a delayed penalty
+      per.en = per.en.filter((e) => e.end - e.t >= 10 && !per.pens.some((pp) => pp.homePP === e.homeEN && pp.t >= e.t - 2 && pp.t <= e.end + 10));
       // step series: each event's spot holds until the next event
       const step = new Array(per.elapsed).fill(0);
       let j = 0, val = 0;
@@ -626,19 +745,50 @@ tr.total td { font-weight: 500; border-bottom: none; }
         while (j < per.ev.length && per.ev[j].t <= s) { val = per.ev[j].v; j++; }
         step[s] = val;
       }
-      const roll = new Array(step.length); let sum = 0;
-      for (let i = 0; i < step.length; i++) { sum += step[i]; if (i >= WINDOW) sum -= step[i - WINDOW]; roll[i] = sum / Math.min(i + 1, WINDOW); }
-      per.step = step; per.roll = roll;
-      const pre = new Float64Array(step.length + 1);
-      for (let i = 0; i < step.length; i++) pre[i + 1] = pre[i] + step[i];
-      per.pre = pre;
-      per.avg = step.length ? step.reduce((a, b) => a + b, 0) / step.length : 0;
-      per.goals.forEach((g) => { g.tiltBefore = roll.length && g.t > 0 ? roll[Math.min(g.t, roll.length) - 1] : 0; });
+      // score-adjusted: take away what an average team does at that score and minute
+      const adj = new Array(step.length), gs = per.goals.slice().sort((x, y) => x.t - y.t);
+      let gi = 0;
+      for (let s = 0; s < step.length; s++) {
+        while (gi < gs.length && gs[gi].t <= s) { margin += gs[gi].home ? 1 : -1; gi++; }
+        adj[s] = step[s] - expectedTilt(n, s, margin);
+      }
+      while (gi < gs.length) { margin += gs[gi].home ? 1 : -1; gi++; }
+      per.step = step;
+      [per.rawRoll, per.rawPre] = series(step);
+      [per.adjRoll, per.adjPre] = series(adj);
+      [per.roll, per.pre] = adjusted ? [per.adjRoll, per.adjPre] : [per.rawRoll, per.rawPre];
+      per.goals.forEach((g) => { g.tiltBefore = per.roll.length && g.t > 0 ? per.roll[Math.min(g.t, per.roll.length) - 1] : 0; });
     }
     const curPer = P[cur.number] || P[nums[nums.length - 1]];
     const tilt = curPer && curPer.roll.length ? curPer.roll[curPer.roll.length - 1] : 0;
-    return { d, P, nums, curPer, tilt, final };
+    return { d, P, nums, curPer, tilt, final, heads, plays, teamOf, isGoalie };
   }
+
+  // 2 min rolling average and running sum of a per-second series
+  function series(step) {
+    const roll = new Array(step.length); let sum = 0;
+    for (let i = 0; i < step.length; i++) { sum += step[i]; if (i >= WINDOW) sum -= step[i - WINDOW]; roll[i] = sum / Math.min(i + 1, WINDOW); }
+    const pre = new Float64Array(step.length + 1);
+    for (let i = 0; i < step.length; i++) pre[i + 1] = pre[i] + step[i];
+    return [roll, pre];
+  }
+
+  /* ---------- score-adjusted tilt ---------- */
+  // League-average tilt for the trailing team by regulation minute (0-59), from all 1,312 games of the
+  // 2025-26 regular season run through analyze(). Home ice is averaged out, so a tied game expects 0.
+  // Down 1 and down 2 or more; the late climb is mostly pulled goalies. Overtime is always tied.
+  const SCORE_EFFECT = {
+    1: [-2,  0,  0,  1,  1,  2,  1,  1,  1,  1,  0,  0,  2,  2,  2,  3,  2,  3,  2,  2,  2,  1,  1,  1,  0,  1,  1,  1,  2,  3,  3,  4,  4,  4,  3,  4,  3,  4,  5,  6,  5,  5,  5,  5,  5,  6,  6,  6,  7,  8,  9,  9,  10,  12,  12,  15,  18,  23,  30,  36],
+    2: [-2,  1,  0,  1,  3,  3,  2,  2,  3,  4,  5,  6,  4,  4,  3,  2,  2,  4,  5,  4,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  3,  4,  6,  5,  5,  5,  5,  4,  4,  5,  6,  6,  6,  6,  7,  8,  9,  9,  10,  10,  9,  9,  11,  12,  16,  17,  18,  18,  19],
+  };
+  function expectedTilt(n, s, margin) {
+    if (n > 3 || !margin) return 0;
+    const e = SCORE_EFFECT[Math.abs(margin) >= 2 ? 2 : 1][(n - 1) * 20 + Math.min(19, Math.floor(s / 60))] / 100;
+    return margin < 0 ? e : -e; // home behind: expect home to tilt the ice
+  }
+  const ADJ_KEY = "icetilt.adjusted";
+  let adjusted = false;
+  try { adjusted = localStorage.getItem(ADJ_KEY) === "1"; } catch (e) {}
 
   /* ---------- render ---------- */
   let colors = ["#7A8793", "#4C6A85"];
@@ -675,20 +825,148 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const cl = $("centerLogo"), cls = logoFor(home);
     if (cls) { cl.setAttribute("href", cls); cl.style.display = ""; } else cl.style.display = "none";
     $("nameA").textContent = away.abbrev; $("nameH").textContent = home.abbrev;
-    $("subA").textContent = nm(away) + (away.sog != null ? " · " + away.sog + " SOG" : "");
-    $("subH").textContent = (home.sog != null ? home.sog + " SOG · " : "") + nm(home);
-    $("scoreA").textContent = away.score != null ? away.score : 0;
-    $("scoreH").textContent = home.score != null ? home.score : 0;
-    const c = d.clock || {}, pd = d.periodDescriptor || {};
-    const live = d.gameState === "LIVE" || d.gameState === "CRIT";
-    $("clock").textContent = a.final ? "Final" : (d.gameState === "FUT" || d.gameState === "PRE") ? new Date(d.startTimeUTC).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : (c.timeRemaining || "--:--");
-    const ps = $("pstate");
-    ps.textContent = a.final ? (pd.periodType && pd.periodType !== "REG" ? "Final/" + pd.periodType : "Game over") : live ? (c.inIntermission ? "Intermission after " + ord(pd.number, pd.periodType) : ord(pd.number, pd.periodType) + (c.running ? " · Live" : " · Clock stopped")) : "Not started";
-    ps.classList.toggle("live", live && !c.inIntermission);
 
     lastA = a;
     renderMoment(a);
-    renderChart(a); renderTable(a); renderStatus();
+    renderChart(a); flushStats(); renderStatus();
+  }
+
+  // scoreboard: the live state, or the score and clock at the moment being replayed
+  function renderBoard(a, v) {
+    const d = a.d, away = d.awayTeam, home = d.homeTeam;
+    const nm = (t) => (t.commonName && t.commonName.default) || (t.name && t.name.default) || t.abbrev;
+    $("subA").textContent = nm(away) + (v.sog[0] != null ? " · " + v.sog[0] + " SOG" : "");
+    $("subH").textContent = (v.sog[1] != null ? v.sog[1] + " SOG · " : "") + nm(home);
+    $("scoreA").textContent = v.score[0]; $("scoreH").textContent = v.score[1];
+    const ps = $("pstate");
+    if (v.rewound) {
+      const per = a.P[v.n];
+      $("clock").textContent = fmt(per.len - v.s);
+      ps.textContent = ord(v.n, per.type) + (playing ? " · Replay" : " · Rewound");
+      ps.classList.remove("live");
+      return;
+    }
+    const c = d.clock || {}, pd = d.periodDescriptor || {};
+    const live = d.gameState === "LIVE" || d.gameState === "CRIT";
+    $("clock").textContent = a.final ? "Final" : (d.gameState === "FUT" || d.gameState === "PRE") ? new Date(d.startTimeUTC).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : (c.timeRemaining || "--:--");
+    ps.textContent = a.final ? (pd.periodType && pd.periodType !== "REG" ? "Final/" + pd.periodType : "Game over") : live ? (c.inIntermission ? "Intermission after " + ord(pd.number, pd.periodType) : ord(pd.number, pd.periodType) + (c.running ? " · Live" : " · Clock stopped")) : "Not started";
+    ps.classList.toggle("live", live && !c.inIntermission);
+  }
+
+  /* ---------- stats at a moment ---------- */
+  // Live or at the end, the official box score is used. Rewound, everything is rebuilt from the
+  // play-by-play up to that second, plus shift charts for ice time and plus-minus.
+  let shifts = null; // { id, ts, data }
+  async function loadShifts() {
+    const id = gameId;
+    if (shifts && shifts.id === id && (shifts.loading || /FINAL|OFF/.test(latestState) || Date.now() - shifts.ts < 60000)) return;
+    shifts = { id, ts: Date.now(), data: shifts && shifts.id === id ? shifts.data : null, loading: true };
+    try {
+      const r = await getJSON("/api/shifts/" + id);
+      if (id !== gameId) return;
+      shifts = { id, ts: Date.now(), data: (r.data || []).filter((x) => x.typeCode == null || x.typeCode === 517) };
+    } catch (e) { if (id === gameId) shifts = { id, ts: Date.now(), data: shifts.data }; }
+    if (id === gameId) flushStats();
+  }
+  function viewAt(a) {
+    const d = a.d, m = moment(a);
+    if (!m.rewound) {
+      return { rewound: false, upTo: () => true, score: [d.awayTeam.score || 0, d.homeTeam.score || 0], sog: [d.awayTeam.sog, d.homeTeam.sog],
+        team: (lastRail && lastRail.teamGameStats) || null, players: (lastBox && lastBox.playerByGameStats) || null };
+    }
+    const N = m.per.num, S = m.now;
+    const upTo = (n, t) => n < N || (n === N && t <= S);
+    const homeId = d.homeTeam.id;
+    const T = { sog: [0, 0], fo: [0, 0], ppg: [0, 0], ppo: [0, 0], pim: [0, 0], hits: [0, 0], blk: [0, 0], give: [0, 0], take: [0, 0] };
+    const st = new Map();
+    const ps = (id) => { let x = st.get(id); if (!x) st.set(id, x = { goals: 0, assists: 0, sog: 0, hits: 0, blockedShots: 0, pim: 0, pm: 0, toi: 0, sa: 0, ga: 0 }); return x; };
+    const penAt = {};
+    for (const p of a.plays) {
+      const pd = p.periodDescriptor; if (!pd || pd.periodType === "SO") continue;
+      const t = mmss(p.timeInPeriod); if (!upTo(pd.number, t)) continue;
+      const det = p.details || {}, own = det.eventOwnerTeamId == null ? null : det.eventOwnerTeamId === homeId ? 1 : 0;
+      switch (p.typeDescKey) {
+        case "goal":
+          if (own != null) T.sog[own]++;
+          if (det.scoringPlayerId) { ps(det.scoringPlayerId).goals++; ps(det.scoringPlayerId).sog++; }
+          [det.assist1PlayerId, det.assist2PlayerId].forEach((id) => { if (id) ps(id).assists++; });
+          if (det.goalieInNetId) { ps(det.goalieInNetId).sa++; ps(det.goalieInNetId).ga++; }
+          break;
+        case "shot-on-goal":
+          if (own != null) T.sog[own]++;
+          if (det.shootingPlayerId) ps(det.shootingPlayerId).sog++;
+          if (det.goalieInNetId) ps(det.goalieInNetId).sa++;
+          break;
+        case "faceoff": if (own != null) T.fo[own]++; break;
+        case "hit": if (own != null) T.hits[own]++; if (det.hittingPlayerId) ps(det.hittingPlayerId).hits++; break;
+        case "blocked-shot":
+          if (det.blockingPlayerId) { ps(det.blockingPlayerId).blockedShots++; const tm = a.teamOf[det.blockingPlayerId]; if (tm != null) T.blk[tm]++; }
+          break;
+        case "giveaway": if (own != null) T.give[own]++; break;
+        case "takeaway": if (own != null) T.take[own]++; break;
+        case "penalty":
+          if (own == null) break;
+          T.pim[own] += det.duration || 0;
+          if (det.committedByPlayerId) ps(det.committedByPlayerId).pim += det.duration || 0;
+          // coincidental penalties at the same moment cancel out; the rest give the other team a power play
+          if (["MIN", "MAJ", "BEN"].includes(det.typeCode)) { const k = pd.number + ":" + t; (penAt[k] = penAt[k] || [0, 0])[own]++; }
+          break;
+      }
+    }
+    Object.values(penAt).forEach(([pa, ph]) => { if (pa > ph) T.ppo[1]++; else if (ph > pa) T.ppo[0]++; });
+    a.nums.forEach((n) => a.P[n].goals.forEach((g) => { if (upTo(n, g.t) && g.ppGoal) T.ppg[g.home ? 1 : 0]++; }));
+
+    // ice time and plus-minus from shift charts
+    const sh = shifts && shifts.id === String(d.id) && shifts.data;
+    if (sh) {
+      for (const x of sh) {
+        if (x.period > N) continue;
+        const s0 = mmss(x.startTime), s1 = Math.min(mmss(x.endTime), x.period === N ? S : Infinity);
+        if (s1 > s0) ps(x.playerId).toi += s1 - s0;
+      }
+      a.nums.forEach((n) => a.P[n].goals.forEach((g) => {
+        if (!upTo(n, g.t) || g.ppGoal) return;
+        for (const x of sh) {
+          if (x.period !== n || a.isGoalie[x.playerId] || !(mmss(x.startTime) < g.t && mmss(x.endTime) >= g.t)) continue;
+          ps(x.playerId).pm += (x.teamId === homeId) === g.home ? 1 : -1;
+        }
+      }));
+    }
+
+    // same players and order as the official box score, with stats as of this moment
+    let base = lastBox && lastBox.playerByGameStats;
+    if (!base) {
+      base = { awayTeam: { forwards: [], defense: [], goalies: [] }, homeTeam: { forwards: [], defense: [], goalies: [] } };
+      (d.rosterSpots || []).forEach((r) => {
+        const side = base[r.teamId === homeId ? "homeTeam" : "awayTeam"];
+        const p = { playerId: r.playerId, sweaterNumber: r.sweaterNumber, position: r.positionCode, name: { default: ((r.firstName && r.firstName.default) || "").slice(0, 1) + ". " + ((r.lastName && r.lastName.default) || "") } };
+        (r.positionCode === "G" ? side.goalies : r.positionCode === "D" ? side.defense : side.forwards).push(p);
+      });
+    }
+    const skater = (p) => { const x = st.get(p.playerId) || ps(p.playerId); return Object.assign({}, p, { goals: x.goals, assists: x.assists, points: x.goals + x.assists, sog: x.sog, hits: x.hits, blockedShots: x.blockedShots, pim: x.pim, plusMinus: sh ? x.pm : null, toi: sh ? fmt(x.toi) : null }); };
+    const goalie = (p) => { const x = st.get(p.playerId) || ps(p.playerId); return Object.assign({}, p, { shotsAgainst: x.sa, saves: x.sa - x.ga, goalsAgainst: x.ga, savePctg: x.sa ? (x.sa - x.ga) / x.sa : null, toi: sh ? fmt(x.toi) : null, decision: null, starter: p.starter || x.sa > 0 }); };
+    const players = {};
+    ["awayTeam", "homeTeam"].forEach((k) => { const b = base[k] || {}; players[k] = { forwards: (b.forwards || []).map(skater), defense: (b.defense || []).map(skater), goalies: (b.goalies || []).map(goalie) }; });
+
+    const fo = T.fo[0] + T.fo[1];
+    const team = [
+      ["sog", T.sog[0], T.sog[1]], ["faceoffWinningPctg", fo ? T.fo[0] / fo : 0, fo ? T.fo[1] / fo : 0],
+      ["powerPlay", T.ppg[0] + "/" + T.ppo[0], T.ppg[1] + "/" + T.ppo[1]], ["pim", T.pim[0], T.pim[1]], ["hits", T.hits[0], T.hits[1]],
+      ["blockedShots", T.blk[0], T.blk[1]], ["giveaways", T.give[0], T.give[1]], ["takeaways", T.take[0], T.take[1]],
+    ].map(([category, awayValue, homeValue]) => ({ category, awayValue, homeValue }));
+    let ga = 0, gh = 0;
+    a.nums.forEach((n) => a.P[n].goals.forEach((g) => { if (upTo(n, g.t)) { if (g.home) gh++; else ga++; } }));
+    return { rewound: true, n: N, s: S, upTo, score: [ga, gh], sog: T.sog, team, players, hasShifts: !!sh };
+  }
+  // the stats panels re-render a few times a second at most while replaying or dragging
+  let statsTimer = null;
+  function queueStats() { if (!statsTimer) statsTimer = setTimeout(flushStats, playing ? 400 : 120); }
+  function flushStats() {
+    clearTimeout(statsTimer); statsTimer = null;
+    if (!lastA) return;
+    const v = viewAt(lastA);
+    if (v.rewound) loadShifts();
+    renderBoard(lastA, v); renderTable(lastA, v); renderBox(lastA, v); renderPlayers(lastA, v);
   }
 
   function renderMoment(a) {
@@ -718,15 +996,17 @@ tr.total td { font-weight: 500; border-bottom: none; }
         circ.append(title); g.append(circ);
       });
       // average position of play over the window: tilt is avg x / 89 ft, so this is where the line goes
-      const t2 = Math.round(m.tilt * 100), avgCol = t2 > 0 ? cH : t2 < 0 ? cA : "var(--muted)";
-      const ax = 100 + m.tilt * 89;
+      // the rink shows where play actually was, so it always uses the raw tilt
+      const rawTilt = now > 0 && per.rawRoll.length ? per.rawRoll[Math.min(now, per.rawRoll.length) - 1] : 0;
+      const t2 = Math.round(rawTilt * 100), avgCol = t2 > 0 ? cH : t2 < 0 ? cA : "var(--muted)";
+      const ax = 100 + rawTilt * 89;
       const mk = (tag, at, txt) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt) e.textContent = txt; g.prepend(e); return e; };
       mk("text", { x: ax, y: -1.6, "font-size": 3.2, "text-anchor": "middle", fill: avgCol }, "2-MIN AVG");
       mk("path", { d: "M" + (ax - 1.6) + " 0.4 L" + (ax + 1.6) + " 0.4 L" + ax + " 2.6 Z", fill: avgCol });
       mk("line", { x1: ax, x2: ax, y1: 1.5, y2: 83.5, stroke: avgCol, "stroke-width": .9, "stroke-dasharray": "2.2 1.4", opacity: .9 });
       // 5 and 10 min lines, same styles as the chart; each waits until its window has filled this period
-      const longs = [[300, "5", "none"], [600, "10", "3 2"]].filter(([w]) => per.pre && now >= w).map(([w, tag, dash]) => {
-        const v = (per.pre[now] - per.pre[now - w]) / w, r = Math.round(v * 100);
+      const longs = [[300, "5", "none"], [600, "10", "3 2"]].filter(([w]) => per.rawPre && now >= w).map(([w, tag, dash]) => {
+        const v = (per.rawPre[now] - per.rawPre[now - w]) / w, r = Math.round(v * 100);
         return { x: 100 + v * 89, tag, dash, col: r > 0 ? cH : r < 0 ? cA : "var(--muted)" };
       });
       longs.forEach((l, i) => {
@@ -796,29 +1076,45 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const longLabel = per && m.now >= 600 ? "10" : "5";
     if (longV != null && Math.abs(v2) >= 10 && Math.abs(longV) >= 10 && Math.sign(v2) !== Math.sign(longV)) {
       const now2 = v2 > 0 ? home : away, then = longV > 0 ? home : away;
-      $("verdict").textContent = nm(now2) + " are pushing right now, but the " + nm(then) + " have had the better of the last " + longLabel + " minutes.";
+      $("verdict").textContent = nm(now2) + " are pushing now, but the " + nm(then) + " have had the last " + longLabel + " minutes.";
     } else if (longV != null && Math.abs(v2) >= 25 && Math.abs(longV) < 10) {
       $("verdict").textContent = nm(v2 > 0 ? home : away) + " are tilting the ice after an even stretch.";
     } else if (longV != null && Math.abs(v2) >= 10 && Math.abs(longV) >= 25 && Math.sign(v2) === Math.sign(longV)) {
       $("verdict").textContent = nm(v2 > 0 ? home : away) + " have controlled play for the last " + longLabel + " minutes.";
     }
-    $("rink").style.transform = "rotate(" + (m.tilt * 6).toFixed(2) + "deg)";
+    // score context: a team protecting a late lead gives up territory on purpose, so the tilt overstates the chasing team
+    let ga = 0, gh = 0;
+    if (per) a.nums.forEach((n) => a.P[n].goals.forEach((g) => { if (n < per.num || (n === per.num && g.t <= m.now)) { if (g.home) gh++; else ga++; } }));
+    const margin = gh - ga; // positive = home ahead
+    const enNow = per && per.en.find((e) => e.t <= m.now && m.now <= e.end);
+    const late = per && (per.num >= 3 || (per.num === 2 && Math.abs(margin) >= 2));
+    const ctx = $("ctxPill"); ctx.hidden = true;
+    if (enNow) {
+      const puller = enNow.homeEN ? home : away;
+      $("verdict").textContent = nm(puller) + " have pulled their goalie" + (margin ? ", down " + Math.abs(margin) : "") + ". The extra attacker tilts the ice.";
+      ctx.textContent = "Goalie pulled"; ctx.hidden = false;
+    } else if (!adjusted && late && margin && Math.abs(t) >= 25 && Math.sign(t) === -Math.sign(margin)) {
+      const chaser = t > 0 ? home : away, leader = t > 0 ? away : home;
+      $("verdict").textContent = nm(chaser) + " are chasing the game. The " + nm(leader) + ", up " + Math.abs(margin) + ", can sit back.";
+      ctx.textContent = "Score effect"; ctx.hidden = false;
+    }
+    const rawNow = per && m.now > 0 && per.rawRoll.length ? per.rawRoll[Math.min(m.now, per.rawRoll.length) - 1] : 0;
+    $("rink").style.transform = "rotate(" + (rawNow * 6).toFixed(2) + "deg)";
 
     // rewind state
     $("backLive").hidden = !m.rewound;
     const mode = $("meterMode");
     mode.classList.toggle("rewind", m.rewound);
     if (m.rewound) {
-      let ga = 0, gh = 0;
-      a.nums.forEach((n) => a.P[n].goals.forEach((g) => { if (n < per.num || (n === per.num && g.t <= m.now)) { if (g.home) gh++; else ga++; } }));
       $("meterTitle").textContent = "Ice Tilt at " + ord(per.num, per.type) + " " + fmt(per.len - m.now);
-      mode.textContent = "Score then " + away.abbrev + " " + ga + "–" + gh + " " + home.abbrev;
+      mode.textContent = adjusted ? "2 min · score-adjusted" : "Last 2 min of play";
     } else {
       $("meterTitle").textContent = a.final ? "Ice Tilt at the end" : "Ice Tilt";
-      mode.textContent = "Last 2 min of play";
+      mode.textContent = adjusted ? "2 min · score-adjusted" : "Last 2 min of play";
     }
     $("backLive").textContent = a.final ? "Back to end" : "Back to live";
     updateCursor();
+    queueStats(); // scoreboard, period table, box score and players follow the moment too
     renderStatus();
   }
 
@@ -870,6 +1166,13 @@ tr.total td { font-weight: 500; border-bottom: none; }
           const x1 = xs(off + p.t), x2 = xs(off + Math.min(per.len, p.t + p.dur));
           el("rect", { x: x1, width: Math.max(1, x2 - x1), y: p.homePP ? padT : ys(0), height: ys(0) - padT, fill: p.homePP ? cH : cA, "fill-opacity": ".08" });
           el("text", { x: x1 + 2, y: p.homePP ? padT + 11 : H - padB - 4, style: "font-size:10px" }, "PP");
+        });
+        // goalie pulled: the extra skater is a man advantage too
+        per.en.forEach((p) => {
+          const x1 = xs(off + p.t), x2 = xs(off + Math.min(per.len, p.end));
+          el("rect", { x: x1, width: Math.max(1, x2 - x1), y: p.homeEN ? padT : ys(0), height: ys(0) - padT, fill: p.homeEN ? cH : cA, "fill-opacity": ".16" });
+          const underPP = per.pens.some((pp) => pp.homePP === p.homeEN && pp.t <= p.t + 20 && pp.t + pp.dur > p.t);
+          el("text", { x: x1 + 2, y: p.homeEN ? padT + (underPP ? 22 : 11) : H - padB - (underPP ? 15 : 4), style: "font-size:10px" }, "EN");
         });
         if (per.roll.length) {
           let dd = "M" + xs(off).toFixed(1) + " " + ys(0).toFixed(1);
@@ -926,7 +1229,6 @@ tr.total td { font-weight: 500; border-bottom: none; }
     }));
     if (!a.final && a.curPer) { const nx = xs(starts[a.curPer.num] + a.curPer.elapsed); el("line", { class: "now", x1: nx, x2: nx, y1: padT - 6, y2: H - padB }); }
     el("text", { x: padL + 4, y: padT - 10, style: "font-weight:600;fill:" + cH }, a.d.homeTeam.abbrev + " tilt ↑");
-    el("text", { x: W - padR, y: padT - 10, "text-anchor": "end" }, "● goal   PP = power play");
     // scrub cursor, positioned by updateCursor()
     const cg = el("g", { id: "scrubCursor", style: "pointer-events:none" });
     const mk = (tag, at) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); cg.append(e); return e; };
@@ -936,7 +1238,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     geo = { padL, padR, W, total, starts, nums, lenOf, xs };
     updateCursor();
     if (reshow) reshow(); else if (hovered) hideTip();
-    $("chartLegend").textContent = "Shaded = 2 min · up favors " + a.d.homeTeam.abbrev + ", down " + a.d.awayTeam.abbrev;
+    $("chartLegend").textContent = (adjusted ? "Score-adjusted 2 min" : "Shaded = 2 min") + ", ↑ " + a.d.homeTeam.abbrev + " ↓ " + a.d.awayTeam.abbrev + " · PP power play · EN goalie pulled";
   }
 
   function updateCursor() {
@@ -1004,28 +1306,249 @@ tr.total td { font-weight: 500; border-bottom: none; }
   }
   function hideTip() { hovered = null; $("tip").hidden = true; }
 
-  function renderTable(a) {
+  function renderTable(a, v) {
     const away = a.d.awayTeam, home = a.d.homeTeam, A = away.abbrev, H = home.abbrev;
     const t = $("ptable"); t.textContent = "";
-    // a cell is text, or a list of text and team logos
-    const logo = (team) => { const src = logoFor(team); if (!src) return team.abbrev; const i = document.createElement("img"); i.className = "tblogo"; i.src = src; i.alt = team.abbrev; i.title = team.abbrev; i.onerror = () => i.replaceWith(team.abbrev); return i; };
-    const fill = (cell, c) => { if (Array.isArray(c)) { const w = document.createElement("span"); w.className = "cellflex"; c.forEach((x) => w.append(x)); cell.append(w); } else cell.textContent = c; };
-    const pair = (label) => [label + " ", logo(away), "–", logo(home)];
-    const head = ["Period", "Avg tilt", [logo(away), " zone"], [logo(home), " zone"], pair("Shots"), pair("Goals")];
+    const logo = teamLogo;
+    // shots and goals read away–home, as the hint below the table says
+    const head = ["Period", "Avg tilt", [logo(away), " zone"], [logo(home), " zone"], "Shots", "Goals"];
     const tr = document.createElement("tr"); head.forEach((h) => { const th = document.createElement("th"); fill(th, h); tr.append(th); });
     const th = document.createElement("thead"); th.append(tr); t.append(th);
     const tb = document.createElement("tbody");
     const tilt = (v) => { const n = Math.round(v * 100); return n === 0 ? "Even" : [logo(n > 0 ? home : away), (n > 0 ? H : A) + " " + Math.abs(n)]; };
     const tot = { secs: 0, sum: 0, oz: [0, 0], sh: [0, 0], g: [0, 0] };
-    const rows = a.nums.map((n) => {
-      const p = a.P[n], g = [p.goals.filter((x) => !x.home).length, p.goals.filter((x) => x.home).length];
-      tot.secs += p.step.length; tot.sum += p.avg * p.step.length; tot.oz[0] += p.oz[0]; tot.oz[1] += p.oz[1]; tot.sh[0] += p.shots[0]; tot.sh[1] += p.shots[1]; tot.g[0] += g[0]; tot.g[1] += g[1];
-      return [ord(n, p.type), p.step.length ? tilt(p.avg) : "—", p.oz[0], p.oz[1], p.shots[0] + "–" + p.shots[1], g[0] + "–" + g[1]];
+    // when rewound, only what had happened by that moment
+    const rows = a.nums.filter((n) => !v.rewound || n <= v.n).map((n) => {
+      const p = a.P[n], cut = v.rewound && n === v.n ? v.s : Infinity;
+      const secs = Math.min(p.step.length, cut), avg = secs ? p.pre[secs] / secs : 0;
+      const oz = [0, 0], sh = [0, 0], g = [0, 0];
+      p.ev.forEach((e) => { if (e.t <= cut) { if (e.dx > 25) oz[1]++; else if (e.dx < -25) oz[0]++; } });
+      p.shotT.forEach((x) => { if (x.t <= cut) sh[x.home ? 1 : 0]++; });
+      p.goals.forEach((x) => { if (x.t <= cut) g[x.home ? 1 : 0]++; });
+      tot.secs += secs; tot.sum += avg * secs; tot.oz[0] += oz[0]; tot.oz[1] += oz[1]; tot.sh[0] += sh[0]; tot.sh[1] += sh[1]; tot.g[0] += g[0]; tot.g[1] += g[1];
+      return [ord(n, p.type), secs ? tilt(avg) : "—", oz[0], oz[1], sh[0] + "–" + sh[1], g[0] + "–" + g[1]];
     });
     rows.push(["Game", tot.secs ? tilt(tot.sum / tot.secs) : "—", tot.oz[0], tot.oz[1], tot.sh[0] + "–" + tot.sh[1], tot.g[0] + "–" + tot.g[1]]);
     rows.forEach((r, i) => { const row = document.createElement("tr"); if (i === rows.length - 1) row.className = "total"; r.forEach((c) => { const td = document.createElement("td"); fill(td, c); row.append(td); }); tb.append(row); });
     t.append(tb);
   }
+  // table helpers: a cell is text, or a list of text and elements (logos, photos)
+  function teamLogo(team) { const src = logoFor(team); if (!src) return team.abbrev; const i = document.createElement("img"); i.className = "tblogo"; i.src = src; i.alt = team.abbrev; i.title = team.abbrev; i.onerror = () => i.replaceWith(team.abbrev); return i; }
+  function fill(cell, c) { if (Array.isArray(c)) { const w = document.createElement("span"); w.className = "cellflex"; c.forEach((x) => w.append(x)); cell.append(w); } else cell.textContent = c; }
+  const elt = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  // round headshot in a team-colored ring; shows the sweater number if there's no photo
+  function avatar(src, fallback, col, big) {
+    const w = elt("span", "av" + (big ? " lg" : ""), fallback != null ? String(fallback) : "");
+    w.style.borderColor = col;
+    if (src) { const i = document.createElement("img"); i.alt = ""; i.loading = "lazy"; i.src = src; i.onerror = () => i.remove(); w.append(i); }
+    return w;
+  }
+  // re-render a scrolling pane without losing the reader's place
+  function refill(pane, build) { const st = pane.scrollTop, sl = pane.scrollLeft; pane.textContent = ""; build(); pane.scrollTop = st; pane.scrollLeft = sl; }
+
+  /* ---------- box score ---------- */
+  const TEAM_STATS = [
+    ["sog", "Shots on goal"], ["faceoffWinningPctg", "Faceoffs"], ["powerPlay", "Power play"], ["hits", "Hits"],
+    ["blockedShots", "Blocked shots"], ["pim", "Penalty minutes"], ["giveaways", "Giveaways"], ["takeaways", "Takeaways"],
+  ];
+  function renderBox(a, vw) {
+    const pane = $("pane-box");
+    refill(pane, () => {
+      const d = a.d, away = d.awayTeam, home = d.homeTeam, [cA, cH] = colors;
+      if (!a.nums.length) { pane.append(elt("p", "empty", "The box score fills in once the puck drops.")); return; }
+      if (vw.rewound) pane.append(elt("p", "hint asof", "As of " + ord(vw.n, a.P[vw.n].type) + " " + fmt(a.P[vw.n].len - vw.s) + ", rebuilt from the play-by-play."));
+      const nums = a.nums.filter((n) => !vw.rewound || n <= vw.n);
+      const grid = elt("div", "boxgrid"); pane.append(grid);
+
+      // linescore: goals by period, then total and shots
+      const ls = elt("section", "full");
+      const t = elt("table", "lscore");
+      const pd = d.periodDescriptor || {};
+      const so = a.final && pd.periodType === "SO" && !vw.rewound;
+      const cols = nums.map((n) => ord(n, a.P[n].type)).concat(so ? ["SO"] : [], ["T", "SOG"]);
+      const hr = elt("tr"); ["", ...cols].forEach((c) => hr.append(elt("th", null, c)));
+      const thd = elt("thead"); thd.append(hr); t.append(thd);
+      const tb = elt("tbody");
+      [[away, false], [home, true]].forEach(([team, isHome]) => {
+        const row = elt("tr");
+        const name = elt("td"), lg = teamLogo(team); fill(name, typeof lg === "string" ? lg : [lg, team.abbrev]); row.append(name);
+        let sum = 0;
+        nums.forEach((n) => { const g = a.P[n].goals.filter((x) => x.home === isHome && vw.upTo(n, x.t)).length; sum += g; row.append(elt("td", null, g)); });
+        const total = vw.rewound ? sum : team.score != null ? team.score : sum;
+        if (so) row.append(elt("td", null, Math.max(0, total - sum)));
+        row.append(elt("td", "tot", total));
+        const sog = vw.sog[isHome ? 1 : 0];
+        row.append(elt("td", null, sog != null ? sog : nums.reduce((s, n) => s + a.P[n].shots[isHome ? 1 : 0], 0)));
+        tb.append(row);
+      });
+      t.append(tb); ls.append(t); grid.append(ls);
+
+      // team stats, away on the left like the scoreboard
+      const ts = elt("section"); ts.append(elt("div", "eyebrow", "Team stats"));
+      const stats = new Map((vw.team || []).map((s) => [s.category, s]));
+      if (!stats.size) ts.append(elt("p", "hint", "Team stats aren't available for this game yet."));
+      TEAM_STATS.forEach(([key, labelText]) => {
+        const s = stats.get(key); if (!s) return;
+        const show = (v) => key === "faceoffWinningPctg" ? Math.round(v * 100) + "%" : v;
+        const num = (v) => typeof v === "number" ? v : parseFloat(String(v).split("/")[0]) || 0;
+        const va = num(s.awayValue), vh = num(s.homeValue);
+        const row = elt("div", "trow");
+        const ba = elt("b", null, show(s.awayValue)); ba.style.color = cA;
+        const bh = elt("b", null, show(s.homeValue)); bh.style.color = cH;
+        const mid = elt("div", "tl"); mid.append(elt("span", null, labelText));
+        const bar = elt("div", "tbar"), ia = elt("i"), ih = elt("i");
+        ia.style.background = cA; ih.style.background = cH;
+        ia.style.flex = String(va || (vh ? 0 : 1)); ih.style.flex = String(vh || (va ? 0 : 1));
+        bar.append(ia, ih); mid.append(bar);
+        row.append(ba, mid, bh); ts.append(row);
+      });
+      grid.append(ts);
+
+      // scoring summary with the scorer's photo
+      const gs = elt("section"); gs.append(elt("div", "eyebrow", "Scoring"));
+      let any = false;
+      nums.forEach((n) => {
+        const per = a.P[n], goals = per.goals.filter((gl) => vw.upTo(n, gl.t));
+        if (!goals.length) return;
+        any = true;
+        gs.append(elt("div", "eyebrow gper", ord(n, per.type) + " period"));
+        goals.forEach((gl) => {
+          const team = gl.home ? home : away, col = gl.home ? cH : cA;
+          const row = elt("div", "grow");
+          row.append(elt("span", "gt", fmt(gl.t)), teamLogo(team), avatar(gl.photo, team.abbrev, col, true));
+          const w = elt("span", "gw"), nmEl = elt("span", "gn");
+          if (gl.clip) { const ln = elt("a", null, gl.scorer || "Scorer not listed"); ln.href = gl.clip; ln.target = "_blank"; ln.rel = "noopener"; ln.title = "Watch the highlight"; nmEl.append(ln); }
+          else nmEl.textContent = gl.scorer || "Scorer not listed";
+          w.append(nmEl, elt("span", "ga", gl.assists.length ? gl.assists.join(", ") : "Unassisted"));
+          const sc = elt("span", "gs", gl.away != null ? gl.away + "–" + gl.homeScore : "");
+          if (gl.strength) sc.append(elt("small", null, gl.strength));
+          row.append(w, sc); gs.append(row);
+        });
+      });
+      if (!any) gs.append(elt("p", "hint", "No goals yet."));
+      grid.append(gs);
+    });
+  }
+
+  /* ---------- player stats ---------- */
+  const SIDE_KEY = "icetilt.side", SORT_KEY = "icetilt.psort";
+  let pSide = "away", pSort = { k: "points", dir: -1 };
+  try { if (localStorage.getItem(SIDE_KEY) === "home") pSide = "home"; const v = JSON.parse(localStorage.getItem(SORT_KEY) || "null"); if (v && v.k) pSort = v; } catch (e) {}
+  const SKATER_COLS = [
+    ["goals", "G", "Goals"], ["assists", "A", "Assists"], ["points", "P", "Points"], ["plusMinus", "+/−", "Plus-minus"],
+    ["sog", "SOG", "Shots on goal"], ["hits", "HIT", "Hits"], ["blockedShots", "BLK", "Blocked shots"], ["pim", "PIM", "Penalty minutes"], ["toi", "TOI", "Time on ice"],
+  ];
+  const GOALIE_COLS = [["shotsAgainst", "SA", "Shots against"], ["saves", "SV", "Saves"], ["savePctg", "SV%", "Save percentage"], ["goalsAgainst", "GA", "Goals against"], ["toi", "TOI", "Time on ice"], ["decision", "DEC", "Decision"]];
+  const statVal = (p, k) => k === "toi" ? mmss(p.toi) : k === "name" ? ((p.name && p.name.default) || "") : (p[k] != null ? p[k] : -Infinity);
+  function playerCell(a, p, col) {
+    const nmTxt = (p.name && p.name.default) || "Unknown";
+    const num = elt("span", "pnum", p.sweaterNumber != null ? "#" + p.sweaterNumber : "");
+    return [avatar(a.heads[p.playerId], p.sweaterNumber, col), num, elt("span", "pname", nmTxt), elt("span", "ppos", p.position || "")];
+  }
+  function renderPlayers(a, vw) {
+    const d = a.d, [cA, cH] = colors;
+    // away/home switch in the panel header
+    const sw = $("teamSwitch"); sw.textContent = "";
+    [["away", d.awayTeam], ["home", d.homeTeam]].forEach(([s, team]) => {
+      const b = elt("button", "tsw"); b.type = "button"; b.setAttribute("aria-pressed", String(pSide === s));
+      const src = logoFor(team);
+      if (src) { const i = document.createElement("img"); i.src = src; i.alt = ""; i.onerror = () => i.remove(); b.append(i); }
+      b.append(team.abbrev);
+      b.onclick = () => { pSide = s; try { localStorage.setItem(SIDE_KEY, s); } catch (e) {} flushStats(); };
+      sw.append(b);
+    });
+    const pane = $("pane-players");
+    refill(pane, () => {
+      const pb = vw.players;
+      const key = pSide === "home" ? "homeTeam" : "awayTeam", col = pSide === "home" ? cH : cA;
+      const side = pb && pb[key];
+      if (!side || !((side.forwards || []).length + (side.defense || []).length)) { pane.append(elt("p", "empty", "Player stats appear once the game starts.")); return; }
+      if (vw.rewound) pane.append(elt("p", "hint asof", "As of " + ord(vw.n, a.P[vw.n].type) + " " + fmt(a.P[vw.n].len - vw.s) + ". " + (vw.hasShifts ? "Ice time and +/− come from the shift charts." : "Loading shift charts for ice time and +/−…")));
+
+      // skaters, sortable by any column
+      const sk = (side.forwards || []).concat(side.defense || []);
+      const cmp = (x, y, k) => { const p = statVal(x, k), q = statVal(y, k); return typeof p === "string" ? p.localeCompare(q) : p - q; };
+      sk.sort((x, y) => pSort.dir * cmp(x, y, pSort.k) || -cmp(x, y, "points") || -cmp(x, y, "goals") || -cmp(x, y, "toi"));
+      const best = {};
+      SKATER_COLS.forEach(([k]) => { best[k] = Math.max(...sk.map((p) => statVal(p, k))); });
+      const t = elt("table", "stbl");
+      const hr = elt("tr");
+      [["name", "Skater", "Name"], ...SKATER_COLS].forEach(([k, short, long]) => {
+        const th = elt("th"); th.title = long;
+        if (pSort.k === k) th.setAttribute("aria-sort", pSort.dir < 0 ? "descending" : "ascending");
+        const b = elt("button", "sortbtn", short); b.type = "button"; b.setAttribute("aria-label", "Sort by " + long.toLowerCase());
+        b.onclick = () => {
+          pSort = pSort.k === k ? { k, dir: -pSort.dir } : { k, dir: k === "name" ? 1 : -1 };
+          try { localStorage.setItem(SORT_KEY, JSON.stringify(pSort)); } catch (e) {}
+          flushStats();
+        };
+        th.append(b); hr.append(th);
+      });
+      const thd = elt("thead"); thd.append(hr); t.append(thd);
+      const tb = elt("tbody");
+      sk.forEach((p) => {
+        const row = elt("tr");
+        const nc = elt("td"); fill(nc, playerCell(a, p, col)); row.append(nc);
+        SKATER_COLS.forEach(([k]) => {
+          const v = p[k];
+          const td = elt("td", null, v == null ? "—" : k === "plusMinus" && v > 0 ? "+" + v : v);
+          // the team leader in each column stands out; zeros fade
+          if (k !== "plusMinus" && v != null && best[k] > 0 && statVal(p, k) === best[k]) td.className = "lead";
+          else if (v === 0) td.className = "dim";
+          row.append(td);
+        });
+        tb.append(row);
+      });
+      t.append(tb); pane.append(t);
+
+      // goalies who played
+      const gs = (side.goalies || []).filter((g) => g.starter || mmss(g.toi) > 0 || g.shotsAgainst > 0);
+      if (gs.length) {
+        pane.append(elt("div", "eyebrow subhead", "Goalies"));
+        const gt = elt("table", "stbl");
+        const gh = elt("tr"); gh.append(elt("th", null, "Goalie"));
+        GOALIE_COLS.forEach(([, short, long]) => { const th = elt("th", null, short); th.title = long; gh.append(th); });
+        const ghd = elt("thead"); ghd.append(gh); gt.append(ghd);
+        const gb = elt("tbody");
+        gs.forEach((g) => {
+          const row = elt("tr");
+          const nc = elt("td"); fill(nc, playerCell(a, g, col)); row.append(nc);
+          GOALIE_COLS.forEach(([k]) => {
+            const v = g[k];
+            row.append(elt("td", null, v == null || v === "" ? "—" : k === "savePctg" ? v.toFixed(3).replace(/^0/, "") : v));
+          });
+          gb.append(row);
+        });
+        gt.append(gb); pane.append(gt);
+      }
+    });
+  }
+
+  /* ---------- stats tabs ---------- */
+  const TAB_KEY = "icetilt.tab";
+  const TABS = ["box", "players"];
+  let tab = "box";
+  try { const v = localStorage.getItem(TAB_KEY); if (TABS.includes(v)) tab = v; } catch (e) {}
+  function setTab(next, focus) {
+    tab = next;
+    TABS.forEach((k) => {
+      const b = $("tab-" + k), on = k === tab;
+      b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1;
+      $("pane-" + k).hidden = !on;
+      if (on && focus) b.focus();
+    });
+    $("teamSwitch").hidden = tab !== "players";
+    try { localStorage.setItem(TAB_KEY, tab); } catch (e) {}
+  }
+  TABS.forEach((k, i) => {
+    const b = $("tab-" + k);
+    b.onclick = () => setTab(k);
+    b.addEventListener("keydown", (e) => {
+      const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (step) { e.preventDefault(); setTab(TABS[(i + step + TABS.length) % TABS.length], true); }
+    });
+  });
+  setTab(tab);
 
   /* ---------- timeline scrubbing ---------- */
   const chartEl = $("chart");
@@ -1054,7 +1577,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
   // replay: one period in about 40 seconds
   const REPLAY_STEP = 3;
   const PLAY_LABEL = "▶ Replay", PAUSE_LABEL = "❚❚ Pause";
-  function stopReplay() { if (playing) { clearInterval(playing); playing = null; } $("replayBtn").textContent = PLAY_LABEL; }
+  function stopReplay() { if (playing) { clearInterval(playing); playing = null; queueStats(); } $("replayBtn").textContent = PLAY_LABEL; }
   $("replayBtn").onclick = () => {
     if (!geo || !lastA) return;
     if (playing) { stopReplay(); renderStatus(); return; }
@@ -1100,6 +1623,16 @@ tr.total td { font-weight: 500; border-bottom: none; }
   $("howClose").onclick = () => setHow(false);
   $("scrim").onclick = () => setHow(false);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("how").classList.contains("open")) setHow(false); });
+  const modeSel = $("tiltMode");
+  modeSel.value = adjusted ? "adj" : "raw";
+  const markMode = () => modeSel.parentElement.classList.toggle("on", adjusted);
+  markMode();
+  modeSel.onchange = () => {
+    adjusted = modeSel.value === "adj";
+    try { localStorage.setItem(ADJ_KEY, adjusted ? "1" : "0"); } catch (e) {}
+    markMode();
+    if (lastData) render(analyze(lastData));
+  };
   const delaySel = $("delay");
   if (![...delaySel.options].some((o) => +o.value === delay)) { const o = document.createElement("option"); o.value = delay; o.textContent = delay + " s"; delaySel.append(o); }
   delaySel.value = String(delay);

@@ -21,11 +21,17 @@ This opens http://127.0.0.1:8765 in your browser. Phones and tablets on the same
 - Pick any date and game. Live games refresh every 5 seconds.
 - **Ice Tilt meter:** the official two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in), plus **5 and 10 minute** comparison boxes. The verdict line points out when the short and long windows disagree.
 - **Rink:** where the events of the last two minutes happened, in team colors, with a dashed line marking the average position of play over those two minutes.
-- **Tilt over the game:** a timeline of the 2 min tilt (shaded) with 5 min (solid) and 10 min (dashed) lines you can toggle, plus goals and power plays.
+- **Score effect:** late in a game, the team that's behind usually pushes while the leader sits back, so the tilt can make the losing team look dominant. When the trailing team is tilting the ice in the 3rd (or the 2nd, down by 2+), the verdict says so and a **Score effect** tag appears. With the goalie pulled it shows **Goalie pulled** instead.
+- **Score-adjusted tilt** (Tilt menu in the top bar, remembered): takes away the push a trailing team usually gets. All 1,312 games of the 2025–26 regular season were run through the same method to find the average tilt for a team down 1, or down 2+, at each minute of regulation. That's subtracted second by second from the meter, the 5/10 min boxes, the chart and the period table. Home ice is averaged out and overtime is unadjusted, since it's always tied. The rink always shows raw position.
+- **Replay follows everywhere:** when you rewind or replay, the scoreboard, period table, box score and player stats all show the game as of that moment. They're rebuilt from the play-by-play, with ice time and +/− from the NHL shift charts.
+- **Tilt over the game:** a timeline of the 2 min tilt (shaded) with 5 min (solid) and 10 min (dashed) lines you can toggle, plus goals, power plays (PP) and pulled-goalie stretches (EN). EN is the extra-attacker advantage. It's read from the feed's on-ice situation, and brief pulls for a delayed penalty are left out.
   - Hover a goal for the scorer, assists, strength, score and the tilt just before it. Click it to open the NHL highlight video.
   - Drag across the chart, or use the arrow keys, to rewind. **Replay** plays the whole game back.
 - **Team logos** on the scoreboard, game list, tilt meter and at center ice. Goal hovers show the **scorer's headshot**. Both come from the NHL's own image server.
-- **By period:** average tilt, offensive-zone events, shots and goals for each period.
+- **By period** (under the Ice Tilt meter): average tilt, offensive-zone events, shots and goals for each period.
+- **Stats column** (full height on the right) has two tabs. Your choice is remembered.
+  - **Box score:** goals by period with totals and shots, team stats (shots, faceoffs, power play, hits, blocks, penalty minutes, giveaways, takeaways), and a scoring summary with each scorer's headshot. Click a scorer's name to watch the goal.
+  - **Players:** skater and goalie stats with headshots for either team (switch with the logo buttons). Click a column heading to sort.
 - **TV delay** (top bar, off by default) holds the feed back so it doesn't run ahead of your broadcast. It delays the game list scores too, so nothing gets spoiled. Set it to 10–60 s to match your provider. Your choice is remembered.
 - On laptop and desktop windows it fits on one screen. Narrow windows get a scrolling layout.
 
