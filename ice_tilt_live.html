@@ -218,6 +218,15 @@ table.stbl { min-width: 520px; }
 .stbl .pnum, .stbl .ppos { color: var(--muted); font-size: 12px; }
 .stbl .lead { font-weight: 600; color: var(--ink); }
 .stbl td.dim { color: var(--muted); }
+/* players on the ice: a strip above the table, and their rows marked in it */
+.onice { position: sticky; left: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 10px; }
+.ochip { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.ochip .pname { font-weight: 500; }
+.ochip .pnum, .ochip .ppos { color: var(--muted); font-size: 12px; }
+.ochip .av { width: 24px; height: 24px; }
+.stbl tr.onrow td { background: color-mix(in srgb, var(--oc) 12%, var(--surface)); }
+.stbl tr.onrow td:first-child { box-shadow: inset 3px 0 0 var(--oc); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sortbtn { border: 0; background: none; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
 th[aria-sort] .sortbtn { color: var(--ink); }
 th[aria-sort="descending"] .sortbtn::after { content: " ↓"; }
@@ -1010,11 +1019,37 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     } catch (e) { if (id === gameId) shifts = { id, ts: Date.now(), data: shifts.data }; }
     if (id === gameId) flushStats();
   }
+  // who's on the ice at second s of period n, from the shift charts; null until the shifts reach that moment
+  // (a shift is only listed once it ends, so live play usually runs ahead of them). Line changes overlap by
+  // a second or two, so a team showing more than six keeps the shifts that run longest from here.
+  function onIceAt(a, n, s) {
+    const sh = shifts && shifts.id === String(a.d.id) && shifts.data;
+    if (!sh || !sh.some((x) => x.period > n || (x.period === n && mmss(x.endTime) >= s))) return null;
+    const homeId = a.d.homeTeam.id, on = [[], []];
+    for (const x of sh) {
+      if (x.period !== n) continue;
+      const s0 = mmss(x.startTime), s1 = mmss(x.endTime);
+      if (s0 < s && s1 >= s) on[x.teamId === homeId ? 1 : 0].push({ id: x.playerId, end: s1 });
+    }
+    const ids = new Set();
+    on.forEach((t) => t.sort((p, q) => q.end - p.end).slice(0, 6).forEach((p) => ids.add(p.id)));
+    return ids;
+  }
+  // the latest moment the shift charts cover, as "6:27 left in the 3rd" style text
+  function shiftsReach(a) {
+    const sh = shifts && shifts.id === String(a.d.id) && shifts.data;
+    if (!sh || !sh.length) return null;
+    const x = sh.reduce((m, x) => x.period > m.period || (x.period === m.period && mmss(x.endTime) > mmss(m.endTime)) ? x : m);
+    const per = a.P[x.period];
+    return per ? fmt(per.len - mmss(x.endTime)) + " left in the " + ord(x.period, per.type) : null;
+  }
   function viewAt(a) {
     const d = a.d, m = moment(a);
     if (!m.rewound) {
+      const c = d.clock || {}, live = (d.gameState === "LIVE" || d.gameState === "CRIT") && !c.inIntermission && m.per;
       return { rewound: false, upTo: () => true, score: [d.awayTeam.score || 0, d.homeTeam.score || 0], sog: [d.awayTeam.sog, d.homeTeam.sog],
-        team: (lastRail && lastRail.teamGameStats) || null, players: (lastBox && lastBox.playerByGameStats) || null };
+        team: (lastRail && lastRail.teamGameStats) || null, players: (lastBox && lastBox.playerByGameStats) || null,
+        live: !!live, onIce: live ? onIceAt(a, m.per.num, m.now) : null, shiftsReach: live ? shiftsReach(a) : null };
     }
     const N = m.per.num, S = m.now;
     const upTo = (n, t) => n < N || (n === N && t <= S);
@@ -1098,7 +1133,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     ].map(([category, awayValue, homeValue]) => ({ category, awayValue, homeValue }));
     let ga = 0, gh = 0;
     a.nums.forEach((n) => a.P[n].goals.forEach((g) => { if (upTo(n, g.t)) { if (g.home) gh++; else ga++; } }));
-    return { rewound: true, n: N, s: S, upTo, score: [ga, gh], sog: T.sog, team, players, hasShifts: !!sh };
+    return { rewound: true, n: N, s: S, upTo, score: [ga, gh], sog: T.sog, team, players, hasShifts: !!sh, onIce: onIceAt(a, N, S) };
   }
   // the stats panels re-render a few times a second at most while replaying or dragging
   let statsTimer = null;
@@ -1107,7 +1142,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     clearTimeout(statsTimer); statsTimer = null;
     if (!lastA) return;
     const v = viewAt(lastA);
-    if (v.rewound) loadShifts();
+    if (v.rewound || v.live) loadShifts();
     renderBoard(lastA, v); renderTable(lastA, v); renderBox(lastA, v); renderPlayers(lastA, v);
   }
 
@@ -1587,6 +1622,12 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     const num = elt("span", "pnum", p.sweaterNumber != null ? "#" + p.sweaterNumber : "");
     return [avatar(a.heads[p.playerId], p.sweaterNumber, col), num, elt("span", "pname", nmTxt), elt("span", "ppos", p.position || "")];
   }
+  // a row for someone on the ice gets a team-colored edge and tint, and says so to screen readers
+  function markOnIce(row, nc, ice, p, col) {
+    if (!ice || !ice.has(p.playerId)) return;
+    row.className = "onrow"; row.style.setProperty("--oc", col);
+    nc.append(elt("span", "vh", " (on ice)"));
+  }
   function renderPlayers(a, vw) {
     const d = a.d, [cA, cH] = colors;
     // away/home switch in the panel header
@@ -1606,6 +1647,21 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       const side = pb && pb[key];
       if (!side || !((side.forwards || []).length + (side.defense || []).length)) { pane.append(elt("p", "empty", "Player stats appear once the game starts.")); return; }
       if (vw.rewound) pane.append(elt("p", "hint asof", "As of " + ord(vw.n, a.P[vw.n].type) + " " + fmt(a.P[vw.n].len - vw.s) + ". " + (vw.hasShifts ? "Ice time and +/− come from the shift charts." : "Loading shift charts for ice time and +/−…")));
+
+      // the five or six on the ice right now, forwards then defense then goalie
+      const ice = vw.onIce;
+      const line = ice ? [].concat(side.forwards || [], side.defense || [], side.goalies || []).filter((p) => ice.has(p.playerId)) : [];
+      if (line.length) {
+        const strip = elt("div", "onice");
+        strip.append(elt("span", "eyebrow", "On ice"));
+        line.forEach((p) => {
+          const c = elt("span", "ochip");
+          c.append(avatar(a.heads[p.playerId], p.sweaterNumber, col), elt("span", "pnum", p.sweaterNumber != null ? "#" + p.sweaterNumber : ""),
+            elt("span", "pname", (p.name && p.name.default) || "Unknown"), elt("span", "ppos", p.position || ""));
+          strip.append(c);
+        });
+        pane.append(strip);
+      } else if (vw.live) pane.append(elt("p", "hint asof", "Who's on the ice shows when you rewind: the NHL posts shifts once they end, minutes behind play" + (vw.shiftsReach ? " (so far up to " + vw.shiftsReach + ")." : ".")));
 
       // skaters, sortable by any column
       const sk = (side.forwards || []).concat(side.defense || []);
@@ -1631,6 +1687,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       sk.forEach((p) => {
         const row = elt("tr");
         const nc = elt("td"); fill(nc, playerCell(a, p, col)); row.append(nc);
+        markOnIce(row, nc, ice, p, col);
         SKATER_COLS.forEach(([k]) => {
           const v = p[k];
           const td = elt("td", null, v == null ? "—" : k === "plusMinus" && v > 0 ? "+" + v : v);
@@ -1655,6 +1712,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
         gs.forEach((g) => {
           const row = elt("tr");
           const nc = elt("td"); fill(nc, playerCell(a, g, col)); row.append(nc);
+          markOnIce(row, nc, ice, g, col);
           GOALIE_COLS.forEach(([k]) => {
             const v = g[k];
             row.append(elt("td", null, v == null || v === "" ? "—" : k === "savePctg" ? v.toFixed(3).replace(/^0/, "") : v));
