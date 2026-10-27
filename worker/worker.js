@@ -23,6 +23,7 @@ function reply(status, body, extra = {}) {
       "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex, nofollow",
       ...extra,
     },
   });

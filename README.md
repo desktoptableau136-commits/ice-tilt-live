@@ -18,7 +18,7 @@ This opens http://127.0.0.1:8765 in your browser, starting on all of the day's g
 
 ## On GitHub Pages
 
-The same page is hosted at https://desktoptableau136-commits.github.io/ice-tilt-live/, so you don't need Python running. The NHL feed doesn't let other websites read it from a browser, so the hosted page gets it through a small Cloudflare Worker (`worker/worker.js`) at https://ice-tilt-live.desktoptableau136.workers.dev. It does the same job as `ice_tilt_live.py`. When the page runs from `ice_tilt_live.py`, it still uses the local server.
+The same page is hosted on this repo's GitHub Pages site, so you don't need Python running. The NHL feed doesn't let other websites read it from a browser, so the hosted page gets it through a small Cloudflare Worker (`worker/worker.js`). It does the same job as `ice_tilt_live.py`. The pages tell search engines not to list them, and the Worker's answers do too. When the page runs from `ice_tilt_live.py`, it still uses the local server.
 
 - To update the Worker, paste the new `worker/worker.js` into it on the Cloudflare dashboard (Workers & Pages → ice-tilt-live → Edit code) and click **Deploy**.
 - Settings like pins and TV delay are remembered separately on the hosted page and the local one.
