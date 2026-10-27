@@ -31,6 +31,15 @@ ROUTES = [
     (re.compile(r"^/api/shifts/(\d{10})$"), "https://api.nhle.com/stats/rest/en/shiftcharts?cayenneExp=gameId={}"),
 ]
 
+# home-screen icon and manifest, so Add to Home Screen works from the local server too
+STATIC = {
+    "/manifest.webmanifest": "application/manifest+json",
+    "/icons/icon-192.png": "image/png",
+    "/icons/icon-512.png": "image/png",
+    "/icons/apple-touch-icon.png": "image/png",
+    "/icons/favicon-64.png": "image/png",
+}
+
 _cache = {}
 _lock = threading.Lock()
 
@@ -61,8 +70,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if path in ("/", "/index.html"):
+        if path in ("/", "/index.html", "/ice_tilt_live.html"):
             self.send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
+            return
+        if path in STATIC:
+            self.send(200, (HERE / path.lstrip("/")).read_bytes(), STATIC[path])
             return
         for rx, tpl in ROUTES:
             m = rx.match(path)

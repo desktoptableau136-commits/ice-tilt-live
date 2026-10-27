@@ -6,6 +6,15 @@
 <title>Ice Tilt Live</title>
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
+<!-- Add to Home Screen opens it full screen, like an app -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ice Tilt">
+<meta name="theme-color" content="#EEF3F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C151D" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -340,6 +349,8 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 .tile:hover .pinbtn, .pinbtn:focus-visible { opacity: 1; }
 .pinbtn:hover { color: var(--ink); background: var(--ice); }
 .pinbtn[aria-pressed="true"] { opacity: 1; color: var(--focus); }
+/* touch screens can't hover: always show the pin, with a finger-sized target that doesn't push the header */
+@media (hover: none) { .pinbtn { opacity: .75; width: 40px; height: 40px; margin: -13px -15px -7px -7px; } }
 .game .pin { width: 12px; height: 12px; color: var(--focus); flex: none; }
 
 /* goal banners: other games' goals while watching one */
@@ -355,6 +366,14 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 .toast .x:hover { color: var(--ink); background: var(--ice); }
 @media (prefers-reduced-motion: no-preference) { .toast { animation: toastin .35s cubic-bezier(.2,.7,.2,1); } }
 @keyframes toastin { from { transform: translateY(12px); opacity: 0; } }
+.toast.swiping { transition: none; }
+.toast.settle { transition: transform .2s, opacity .2s; }
+/* phones: full width along the bottom, clear of the home bar, swipe sideways to dismiss */
+@media (max-width: 560px) {
+  .toasts { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; }
+  .toast { touch-action: pan-y; }
+  .toast .x { width: 36px; height: 36px; top: 0; right: 0; }
+}
 
 /* One-screen dashboard on laptop and desktop windows */
 @media (min-width: 1000px) and (min-height: 600px) {
@@ -764,9 +783,11 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
   }
 
   /* ---------- game ---------- */
+  let gameRun = 0;
   async function loadGame() {
     clearTimeout(timer);
-    const id = gameId;
+    // only the newest call keeps the refresh going, so overlapping calls can't start two loops
+    const id = gameId, run = ++gameRun;
     try {
       // box score and team stats ride in the same snapshot so the TV delay holds them back too
       const [d, box, rail] = await Promise.all([
@@ -774,12 +795,13 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
         getJSON("/api/box/" + id).catch(() => null),
         getJSON("/api/rail/" + id).catch(() => null),
       ]);
-      if (id !== gameId) return;
+      if (id !== gameId || run !== gameRun) return;
       latestState = d.gameState;
       pushSnap(pbpBuf, { ts: Date.now(), d, box, rail });
       showError("");
       showDelayed();
     } catch (e) {
+      if (run !== gameRun) return;
       showError("Couldn't load this game (" + e.message + "). Retrying in 10 seconds.");
     }
     const live = latestState === "LIVE" || latestState === "CRIT" || latestState === "PRE";
@@ -1945,10 +1967,24 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       if (syncing) return;
       const goals = realGoals(g), seen = goalSeen.get(g.id);
       if (!seen) { goalSeen.set(g.id, new Set(goals.map((x) => goalKey(g, x)))); return; }
-      goals.forEach((x) => { const k = goalKey(g, x); if (!seen.has(k)) { seen.add(k); goalFlash.set(k, now); fresh.push({ g, x }); } });
+      goals.forEach((x) => { const k = goalKey(g, x); if (!seen.has(k)) { seen.add(k); if (quietGoals) return; goalFlash.set(k, now); fresh.push({ g, x }); } });
     });
     return fresh;
   }
+
+  // Phones pause the page in the background. Coming back, fetch right away, and treat goals
+  // scored while away like ones already there when the page opened: no banner, no flash.
+  let quietGoals = false, hiddenAt = 0;
+  document.addEventListener("visibilitychange", async () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (!hiddenAt || Date.now() - hiddenAt < 15000) return;
+    hiddenAt = 0; quietGoals = true; $("toasts").textContent = "";
+    try {
+      if (view === "home") await homeTick();
+      else await Promise.all([loadGame(), refreshScoreQuietly()]);
+      trackGoals(scoreRows());
+    } finally { quietGoals = false; }
+  });
 
   /* pins: chosen games sit in their own section at the top; NJD and PIT games start pinned */
   const PIN_KEY = "icetilt.pins", PIN_TEAMS = ["NJD", "PIT"];
@@ -1998,10 +2034,31 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     // pinned games' goals stay longer; any banner stays while the pointer is on it
     const arm = () => { clearTimeout(gone); gone = setTimeout(remove, pinned(g) ? 30000 : 15000); };
     t.addEventListener("mouseenter", () => clearTimeout(gone)); t.addEventListener("mouseleave", arm);
+    swipeAway(t, remove, () => clearTimeout(gone), arm);
     t.append(avatar(x.mugshot, "", col, true), top, sub, acts, close);
     box.append(t);
-    while (box.children.length > 3) box.firstChild.remove();
+    while (box.children.length > (narrow.matches ? 2 : 3)) box.firstChild.remove();
     arm();
+  }
+  const narrow = matchMedia("(max-width: 560px)");
+  // a finger drags the banner sideways; far enough and it's dismissed, otherwise it springs back
+  function swipeAway(t, remove, hold, arm) {
+    let x0 = null, dx = 0;
+    t.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch" || e.target.closest("a, button")) return;
+      x0 = e.clientX; dx = 0; hold(); t.classList.remove("settle"); t.classList.add("swiping");
+    });
+    t.addEventListener("pointermove", (e) => {
+      if (x0 === null) return;
+      dx = e.clientX - x0; t.style.transform = "translateX(" + dx + "px)"; t.style.opacity = String(1 - Math.min(Math.abs(dx) / 200, .7));
+    });
+    const end = () => {
+      if (x0 === null) return;
+      x0 = null; t.classList.remove("swiping"); t.classList.add("settle");
+      if (Math.abs(dx) > 80) { t.style.transform = "translateX(" + (dx > 0 ? 120 : -120) + "%)"; t.style.opacity = "0"; setTimeout(remove, 200); return; }
+      t.style.transform = ""; t.style.opacity = ""; arm();
+    };
+    t.addEventListener("pointerup", end); t.addEventListener("pointercancel", end);
   }
   const clk = (s) => (s || "").replace(/^0(?=\d:)/, ""); // "08:50" -> "8:50"
   const startTime = (g) => new Date(g.startTimeUTC).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
