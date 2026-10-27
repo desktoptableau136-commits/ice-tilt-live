@@ -16,6 +16,13 @@ This opens http://127.0.0.1:8765 in your browser, starting on all of the day's g
 - `python ice_tilt_live.py --no-browser` starts it without opening a browser
 - On a touch screen, tap a goal once for details and again for the highlight.
 
+## On GitHub Pages
+
+The same page is hosted at https://desktoptableau136-commits.github.io/ice-tilt-live/, so you don't need Python running. The NHL feed doesn't let other websites read it from a browser, so the hosted page gets it through a small Cloudflare Worker (`worker/worker.js`) at https://ice-tilt-live.desktoptableau136.workers.dev. It does the same job as `ice_tilt_live.py`. When the page runs from `ice_tilt_live.py`, it still uses the local server.
+
+- To update the Worker, paste the new `worker/worker.js` into it on the Cloudflare dashboard (Workers & Pages → ice-tilt-live → Edit code) and click **Deploy**.
+- Settings like pins and TV delay are remembered separately on the hosted page and the local one.
+
 ## All games
 
 The page opens on every game for the date, as tiles. Click a tile to open that game's dashboard. **All games** in the top bar, or the browser's Back button, returns to the tiles. A link with a game number (like `#2026020180`) opens that game directly.
