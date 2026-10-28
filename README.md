@@ -28,7 +28,7 @@ The same page is hosted on this repo's GitHub Pages site, so you don't need Pyth
 The page opens on every game for the date, as tiles. Click a tile to open that game's dashboard. **All games** in the top bar, or the browser's Back button, returns to the tiles. A link with a game number (like `#2026020180`) opens that game directly.
 
 - **Live** tiles show the score, clock and period, and an intermission countdown during breaks. They also show:
-  - A small rink of the last two minutes, the current 2 min tilt, and the whole-game tilt so far.
+  - A small rink of the last two minutes, the current 2 min tilt, and the whole-game tilt so far. The rink really tilts, tipping down toward the end that's under pressure (up to 5° when a team is hemmed in).
   - A strip of the tilt over the game, with goals and period breaks.
   - Shots, shot attempts and hits. The game with the most of each on that date is marked **most**.
 - **Tags** call out what's happening:
@@ -39,7 +39,7 @@ The page opens on every game for the date, as tiles. Click a tile to open that g
   - A **flurry**: 4 or more shots on goal by one team in the last 2 minutes.
 - **Goals:** when a goal comes in, its tile flashes in the scoring team's color for a minute. The latest goal stays on the tile with the scorer, assists and strength, plus a **Watch** link once the NHL posts the highlight.
 - The **Goals** strip at the top lists every goal on the date, newest first. Click one to watch it.
-- **Pins:** the pin in a tile's corner moves that game into a **Pinned** section at the top, and its chip to the front of the game list. NJD and PIT games start out pinned, and you can unpin any of them. Pins are remembered.
+- **Pins:** the pin in a tile's corner puts that game first in its Live, Later or Final section, and its chip at the front of the game list. NJD and PIT games start out pinned, and you can unpin any of them. Pins are remembered.
 - **Goal banners:** while you're watching one game, goals in the other games pop up in the bottom-right corner, with links to open that game or watch the highlight. A banner stays 15 seconds, or 30 for a pinned game, and holds while your pointer is on it.
 - **Later** tiles show start time, records, arena and TV channels. **Final** tiles show the tilt strip, game tilt and counters.
 - Scores and clocks refresh every 5 seconds and live play-by-play every 10. TV delay and score-adjusted tilt apply here too.

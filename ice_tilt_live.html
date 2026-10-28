@@ -308,7 +308,9 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 .tag { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: 12px; line-height: 1.5; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
 .tag.hot { background: var(--live); border-color: var(--live); color: #fff; }
 .tmid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: center; }
-.mrink { width: 100%; height: auto; display: block; }
+/* the rink tips toward the end that's being pressed, a degree per 9 points of 2 min tilt (5° max) */
+.mrink { width: 100%; height: auto; display: block; transform: rotate(var(--tip, 0deg)); margin-block: 4px; }
+@media (prefers-reduced-motion: no-preference) { .mrink { transition: transform .9s cubic-bezier(.3, 1.4, .5, 1); } }
 .mrink .surface { fill: var(--rink); }
 .mrink .boards { fill: none; stroke: var(--boards); stroke-width: 1.4; }
 .mrink .red { stroke: var(--rink-red); } .mrink .blue { stroke: var(--rink-blue); }
@@ -490,7 +492,6 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 
   <section id="home" aria-label="All games" hidden>
     <div class="ticker" id="ticker" hidden><span class="eyebrow">Goals</span><div class="tickrow" id="tickRow"></div></div>
-    <section class="hsec" id="secPinned" hidden><h2>Pinned</h2><div class="tiles" id="tilesPinned"></div></section>
     <section class="hsec" id="secLive" hidden><h2>Live</h2><div class="tiles" id="tilesLive"></div></section>
     <section class="hsec" id="secLater" hidden><h2>Later</h2><div class="tiles later" id="tilesLater"></div></section>
     <section class="hsec" id="secFinal" hidden><h2>Final</h2><div class="tiles" id="tilesFinal"></div></section>
@@ -1986,7 +1987,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     } finally { quietGoals = false; }
   });
 
-  /* pins: chosen games sit in their own section at the top; NJD and PIT games start pinned */
+  /* pins: chosen games go first in their section and the game list; NJD and PIT games start pinned */
   const PIN_KEY = "icetilt.pins", PIN_TEAMS = ["NJD", "PIT"];
   let pins = { on: [], off: [] }; // games pinned by hand, and pinned-team games unpinned by hand
   try { const v = JSON.parse(localStorage.getItem(PIN_KEY) || "null"); if (v && Array.isArray(v.on) && Array.isArray(v.off)) pins = v; } catch (e) {}
@@ -2087,6 +2088,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
   const svgIn = (parent, tag, at) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); parent.append(e); return e; };
 
   // the last two minutes on a small rink: events as dots, the dashed line is the average position of play
+  const rinkTip = {}; // last angle each tile's rink was drawn at
   function miniRink(a, cA, cH, id) {
     const svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", "-2 -2 204 89"); svg.setAttribute("class", "mrink"); svg.setAttribute("aria-hidden", "true");
@@ -2110,6 +2112,12 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       const r = Math.round(raw * 100), x = 100 + raw * 89, col = r > 0 ? cH : r < 0 ? cA : "var(--muted)";
       svgIn(svg, "line", { x1: x, x2: x, y1: 2, y2: 83, stroke: col, "stroke-width": 1.6, "stroke-dasharray": "3.5 2.5" });
     }
+    // tilt the ice for real: home pressing (home attacks right) drops the right end. Tiles are rebuilt on each
+    // update, so start from the last angle and ease to the new one
+    const tip = Math.max(-5, Math.min(5, a.tilt * 100 / 9)), from = rinkTip[id];
+    rinkTip[id] = tip;
+    svg.style.setProperty("--tip", (from == null ? tip : from).toFixed(2) + "deg");
+    if (from != null && from !== tip) requestAnimationFrame(() => requestAnimationFrame(() => svg.style.setProperty("--tip", tip.toFixed(2) + "deg")));
     return svg;
   }
   // the 2 min tilt over the whole game, home above the line, with goals and period breaks
@@ -2310,12 +2318,11 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     const best = {}, counted = rows.filter((r) => r.snap);
     if (counted.length > 1) ["sog", "att", "hits"].forEach((k) => { const m = Math.max(...counted.map((r) => r.snap.t[k][0] + r.snap.t[k][1])); if (m > 0) best[k] = m; });
 
-    const groups = { Pinned: [], Live: [], Later: [], Final: [] };
+    const groups = { Live: [], Later: [], Final: [] };
     const stage = (r) => r.syncing || isLive(r.g.gameState) ? "Live" : isFinal(r.g.gameState) ? "Final" : "Later";
-    rows.forEach((r) => groups[pinned(r.g) ? "Pinned" : stage(r)].push(r));
-    // pinned: live first, then later, then final
-    const rank = { Live: 0, Later: 1, Final: 2 };
-    groups.Pinned.sort((p, q) => rank[stage(p)] - rank[stage(q)]);
+    rows.forEach((r) => groups[stage(r)].push(r));
+    // pinned games lead their section, otherwise schedule order
+    Object.values(groups).forEach((list) => list.sort((p, q) => pinned(q.g) - pinned(p.g)));
     const minute = Math.floor(Date.now() / 60000);
     Object.keys(groups).forEach((name) => {
       const box = $("tiles" + name), list = groups[name];
