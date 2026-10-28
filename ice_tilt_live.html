@@ -934,6 +934,9 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
         return { t: e.t, v: Math.max(-1, Math.min(1, xh / 89)), dx: xh, dy: e.y * s, home: e.home, type: e.type };
       });
       if (per.end != null) per.elapsed = per.end;
+      // in an intermission the clock counts down the break, not the period: the period is over (or, if the feed
+      // has already moved on to the next one, not started), even before the period-end play is posted
+      else if (n === cur.number && !final && d.clock && d.clock.inIntermission) per.elapsed = per.raw.length ? per.len : 0;
       else if (n === cur.number && !final) per.elapsed = Math.max(0, per.len - ((d.clock && d.clock.secondsRemaining) != null ? d.clock.secondsRemaining : per.len));
       else per.elapsed = per.raw.length ? per.raw[per.raw.length - 1].t : per.len;
       // a goalie still pulled in the live period stays pulled up to now
