@@ -307,7 +307,12 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 .tstat.on .tp { color: var(--live); }
 /* live tiles always keep one line for tags, so a PP or flurry coming and going doesn't resize the tile */
 .tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.tile .tags { flex-wrap: nowrap; overflow: hidden; min-height: 20px; }
+.tile .tags { flex-wrap: nowrap; overflow: hidden; min-height: 20px; align-items: center; }
+/* the latest play, left of the pills; it gives way to them when space runs short */
+.tev { flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tev b { font-family: var(--f-display); font-weight: 700; letter-spacing: .04em; }
+.tev + .tag, .tags .tag:first-child { margin-left: auto; }
+.tags .tag { flex: none; }
 .tag { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: 12px; line-height: 1.5; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
 .tag.hot { background: var(--live); border-color: var(--live); color: #fff; }
 .tmid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: center; }
@@ -2109,10 +2114,14 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     const per = a.curPer;
     if (per) {
       const now = per.elapsed;
-      per.ev.filter((e) => e.t > now - WINDOW && e.t <= now).forEach((e) => svgIn(svg, "circle", {
-        cx: (100 + e.dx).toFixed(1), cy: (42.5 - e.dy).toFixed(1), r: e.type === "goal" ? 5 : e.type.includes("shot") ? 3.8 : 2.8,
+      const shown = per.ev.filter((e) => e.t > now - WINDOW && e.t <= now), size = (e) => e.type === "goal" ? 5 : e.type.includes("shot") ? 3.8 : 2.8;
+      shown.forEach((e) => svgIn(svg, "circle", {
+        cx: (100 + e.dx).toFixed(1), cy: (42.5 - e.dy).toFixed(1), r: size(e),
         fill: e.home ? cH : cA, "fill-opacity": (1 - (now - e.t) / WINDOW * .7).toFixed(2), stroke: "var(--surface)", "stroke-width": .6,
       }));
+      // a ring on the newest one, to match the latest-play line above
+      const e = shown[shown.length - 1];
+      if (e) svgIn(svg, "circle", { cx: (100 + e.dx).toFixed(1), cy: (42.5 - e.dy).toFixed(1), r: size(e) + 2.6, fill: "none", stroke: e.home ? cH : cA, "stroke-width": 1.2 });
       const raw = now > 0 && per.rawRoll.length ? per.rawRoll[Math.min(now, per.rawRoll.length) - 1] : 0;
       const r = Math.round(raw * 100), x = 100 + raw * 89, col = r > 0 ? cH : r < 0 ? cA : "var(--muted)";
       svgIn(svg, "line", { x1: x, x2: x, y1: 2, y2: 83, stroke: col, "stroke-width": 1.6, "stroke-dasharray": "3.5 2.5" });
@@ -2176,6 +2185,43 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     const sub = elt("div", "sub", (adjusted ? "Adjusted 2 min · " : "Last 2 min · ") + "game " + (g === 0 ? "even" : (g > 0 ? home : away).abbrev + " " + Math.abs(g)));
     box.append(tv, pill, bar, sub);
     box.title = "Ice Tilt over the last 2 minutes of play";
+    return box;
+  }
+  // the latest play in a few words, like "NJD hit · Hughes on Benn · 9:31"
+  const MISS = { "hit-crossbar": "off the crossbar", "hit-left-post": "off the post", "hit-right-post": "off the post", "over-cross-bar": "over the net", "above-crossbar": "over the net", "high-and-wide-left": "high and wide", "high-and-wide-right": "high and wide" };
+  const STOP = { "goalie-stopped-after-sog": "goalie froze it", "puck-frozen": "puck frozen", "puck-in-netting": "puck in the netting", "puck-in-crowd": "puck out of play", "puck-in-benches": "puck in the bench", "puck-in-penalty-benches": "puck in the box", "tv-timeout": "TV timeout", "net-dislodged-defensive-skater": "net off", "net-dislodged-offensive-skater": "net off" };
+  function lastPlay(a, cA, cH) {
+    const p = a.plays[a.plays.length - 1];
+    if (!p) return null;
+    const d = a.d, det = p.details || {}, k = p.typeDescKey, words = (x) => (x || "").replace(/-/g, " ");
+    const last = {}; (d.rosterSpots || []).forEach((r) => { last[r.playerId] = r.lastName && r.lastName.default; });
+    const who = (id) => last[id] || "";
+    // whose play it is: the shooter's team for shots (a blocked shot is logged to the blocking team)
+    const shooter = det.shootingPlayerId || det.scoringPlayerId;
+    const own = shooter && a.teamOf[shooter] != null ? a.teamOf[shooter] : det.eventOwnerTeamId == null ? null : +(det.eventOwnerTeamId === d.homeTeam.id);
+    const team = own == null ? null : own ? d.homeTeam : d.awayTeam;
+    let what, more = "";
+    if (k === "goal") { what = "goal"; more = who(det.scoringPlayerId) + (det.scoringPlayerTotal ? " (" + det.scoringPlayerTotal + ")" : ""); }
+    else if (k === "shot-on-goal") { what = "shot"; more = who(shooter) + (det.shotType ? ", " + words(det.shotType) : ""); }
+    else if (k === "missed-shot") { what = "miss"; more = who(shooter) + ", " + (MISS[det.reason] || words(det.reason) || "wide"); }
+    else if (k === "blocked-shot") { what = "shot blocked"; more = who(shooter) + (det.blockingPlayerId ? " by " + who(det.blockingPlayerId) : ""); }
+    else if (k === "hit") { what = "hit"; more = who(det.hittingPlayerId) + (det.hitteePlayerId ? " on " + who(det.hitteePlayerId) : ""); }
+    else if (k === "giveaway" || k === "takeaway") { what = k; more = who(det.playerId); }
+    else if (k === "faceoff") {
+      // the zone is from the winner's side: O is the other team's end
+      const end = team && (det.zoneCode === "O" ? (own ? d.awayTeam : d.homeTeam) : det.zoneCode === "D" ? team : null);
+      what = "faceoff win"; more = who(det.winningPlayerId) + (end ? ", " + end.abbrev + " end" : "");
+    }
+    else if (k === "penalty") { what = "penalty"; more = (det.committedByPlayerId ? who(det.committedByPlayerId) + ", " : det.typeCode === "BEN" ? "bench, " : "") + (det.duration || 2) + " min " + words(det.descKey); }
+    else if (k === "delayed-penalty") { what = "delayed penalty"; }
+    else if (k === "stoppage") { what = "Stoppage"; more = STOP[det.reason] || words(det.reason).replace(/^chlg /, "challenge, "); }
+    else if (k === "period-start") what = ord(p.periodDescriptor.number, p.periodDescriptor.periodType) + " under way";
+    else if (k === "period-end") what = "End of the " + ord(p.periodDescriptor.number, p.periodDescriptor.periodType);
+    else what = words(k).replace(/^./, (c) => c.toUpperCase());
+    const box = elt("span", "tev");
+    if (team) { const t = elt("b", null, team.abbrev); t.style.color = own ? cH : cA; box.append(t, " "); }
+    box.append([what + (more && more.trim() ? " · " + more.trim() : ""), p.timeRemaining && k !== "period-end" ? clk(p.timeRemaining) : ""].filter(Boolean).join(" · "));
+    box.title = box.textContent;
     return box;
   }
   // holds the goal line's space on a live tile before the first goal; blank while the TV delay is holding the feed
@@ -2265,6 +2311,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     const tags = elt("div", "tags");
     const tag = (text, col, cls, title) => { const s = elt("span", "tag" + (cls ? " " + cls : ""), text); if (col) s.style.color = col; if (title) s.title = title; tags.append(s); };
     if (a && live && !syncing) {
+      const ev = lastPlay(a, cA, cH); if (ev) tags.append(ev);
       strengthTags(a, [cA, cH]).forEach((x) => tag(x.text, x.col, null, x.title));
       const pd = g.periodDescriptor || {}, c = g.clock || {}, diff = Math.abs((away.score || 0) - (home.score || 0));
       if (pd.periodType === "OT") tag("Overtime", null, "hot");

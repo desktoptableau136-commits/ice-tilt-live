@@ -31,6 +31,7 @@ The page opens on every game for the date, as tiles. Click a tile to open that g
   - A small rink of the last two minutes, the current 2 min tilt, and the whole-game tilt so far. The rink really tilts, tipping down toward the end that's under pressure (up to 5° when a team is hemmed in).
   - A strip of the tilt over the game, with goals and period breaks.
   - Shots, shot attempts and hits. The game with the most of each on that date is marked **most**.
+- **Latest play:** the most recent event in a few words, like "NJD hit · Hughes on Benn · 9:31", with a ring on its dot on the small rink. The tags sit to its right.
 - **Tags** call out what's happening:
   - **PP** with the time left, and **EN** when a goalie is pulled.
   - **4 on 4**.
