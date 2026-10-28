@@ -58,9 +58,10 @@ The page opens on every game for the date, as tiles. Click a tile to open that g
   - Drag across the chart, or use the arrow keys, to rewind. **Replay** plays the whole game back.
 - **Team logos** on the scoreboard, game list, tilt meter and at center ice. Goal hovers show the **scorer's headshot**. Both come from the NHL's own image server.
 - **By period** (under the Ice Tilt meter): average tilt, offensive-zone events, shots and goals for each period.
-- **Stats column** (full height on the right) has two tabs. Your choice is remembered.
+- **Stats column** (full height on the right) has three tabs. Your choice is remembered.
   - **Box score:** goals by period with totals and shots, team stats (shots, faceoffs, power play, hits, blocks, penalty minutes, giveaways, takeaways), and a scoring summary with each scorer's headshot. Click a scorer's name to watch the goal.
   - **Players:** skater and goalie stats with headshots for either team (switch with the logo buttons). Click a column heading to sort.
+  - **Events:** every play, newest first, under period headers, with goals and penalties picked out and a Watch link on goals. Filter to shots, hits, faceoffs or penalties. Click a play to rewind there. While rewound, later plays fade and the one you're viewing is outlined.
 - **TV delay** (top bar, off by default) holds the feed back so it doesn't run ahead of your broadcast. It delays the game list scores too, so nothing gets spoiled. Set it to 10–60 s to match your provider. Your choice is remembered.
 - On laptop and desktop windows it fits on one screen. Narrow windows get a scrolling layout.
 

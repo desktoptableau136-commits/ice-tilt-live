@@ -188,6 +188,25 @@ tr.total td { font-weight: 500; border-bottom: none; }
 .tab:hover { color: var(--ink); }
 .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 .teamswitch { display: inline-flex; gap: 6px; }
+/* Events tab: one row per play, newest first */
+.evfilter { flex-wrap: wrap; gap: 4px; }
+.evfilter .tsw { padding-inline: 8px; }
+.evpane { overflow-x: hidden; }
+@media not all and (min-width: 1000px) and (min-height: 600px) { .evpane { max-height: 70vh; overflow-y: auto; } }
+.evper { position: sticky; top: 0; z-index: 1; background: var(--surface); padding: 8px 0 4px; border-bottom: 1px solid var(--line); }
+.evrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
+.evgo { display: grid; grid-template-columns: 38px 34px minmax(0, 1fr); gap: 6px; align-items: baseline; width: 100%; min-width: 0; padding: 5px 4px; border: 0; background: none; color: var(--ink); text-align: left; font: inherit; font-size: 13px; cursor: pointer; }
+.evgo:hover { background: var(--ice); }
+.evt { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.evteam { font-family: var(--f-display); font-weight: 700; letter-spacing: .04em; color: var(--tc); }
+.evx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.evrow.pen { box-shadow: inset 3px 0 0 var(--tc); }
+.evrow.pen .evx { color: var(--ink); }
+.evrow.goal { background: color-mix(in srgb, var(--tc) 16%, transparent); box-shadow: inset 3px 0 0 var(--tc); }
+.evrow.goal .evx { color: var(--ink); font-weight: 600; }
+.evrow.later { opacity: .4; }
+.evrow.at { outline: 2px solid var(--focus); outline-offset: -2px; }
+.evwatch { color: var(--focus); font-weight: 600; font-size: 12.5px; white-space: nowrap; padding-right: 6px; }
 .teamswitch[hidden] { display: none; }
 .tsw { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 2px 10px 2px 4px; font-family: var(--f-display); font-weight: 700; font-size: 14px; }
 .tsw img { width: 20px; height: 20px; object-fit: contain; }
@@ -608,11 +627,14 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       <div class="tabs" role="tablist" aria-label="Game stats">
         <button class="tab" role="tab" type="button" id="tab-box" aria-controls="pane-box" data-tab="box">Box score</button>
         <button class="tab" role="tab" type="button" id="tab-players" aria-controls="pane-players" data-tab="players">Players</button>
+        <button class="tab" role="tab" type="button" id="tab-events" aria-controls="pane-events" data-tab="events">Events</button>
       </div>
       <span class="teamswitch" id="teamSwitch" role="group" aria-label="Team" hidden></span>
+      <span class="teamswitch evfilter" id="evFilter" role="group" aria-label="Show" hidden></span>
     </div>
     <div class="tablewrap pane" id="pane-box" role="tabpanel" aria-labelledby="tab-box"></div>
     <div class="tablewrap pane" id="pane-players" role="tabpanel" aria-labelledby="tab-players" hidden></div>
+    <div class="tablewrap pane evpane" id="pane-events" role="tabpanel" aria-labelledby="tab-events" hidden></div>
   </section>
 
   <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
@@ -1180,7 +1202,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     if (!lastA) return;
     const v = viewAt(lastA);
     if (v.rewound || v.live) loadShifts();
-    renderBoard(lastA, v); renderTable(lastA, v); renderBox(lastA, v); renderPlayers(lastA, v);
+    renderBoard(lastA, v); renderTable(lastA, v); renderBox(lastA, v); renderPlayers(lastA, v); renderEvents(lastA, v);
   }
 
   function renderMoment(a) {
@@ -1761,9 +1783,60 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     });
   }
 
+  /* ---------- events ---------- */
+  // every play, newest first; click one to rewind there. While rewound, later plays fade and the viewed one is marked
+  const EV_KEY = "icetilt.evfilter";
+  const EV_FILTERS = [["all", "All"], ["shots", "Shots"], ["hits", "Hits"], ["fo", "Faceoffs"], ["pen", "Penalties"]];
+  const EV_KINDS = { shots: ["goal", "shot-on-goal", "missed-shot", "blocked-shot"], hits: ["hit"], fo: ["faceoff"], pen: ["penalty", "delayed-penalty"] };
+  let evFilter = "all", evAtKey = null, evTop = false;
+  try { const v = localStorage.getItem(EV_KEY); if (EV_FILTERS.some(([k]) => k === v)) evFilter = v; } catch (e) {}
+  function renderEvents(a, vw) {
+    const fsw = $("evFilter"); fsw.textContent = "";
+    EV_FILTERS.forEach(([k, name]) => {
+      const b = elt("button", "tsw", name); b.type = "button"; b.setAttribute("aria-pressed", String(evFilter === k));
+      b.onclick = () => { evFilter = k; evTop = true; try { localStorage.setItem(EV_KEY, k); } catch (e) {} flushStats(); };
+      fsw.append(b);
+    });
+    const pane = $("pane-events");
+    if (pane.hidden) return;
+    const [cA, cH] = colors, names = lastNames(a.d), kinds = EV_KINDS[evFilter];
+    const plays = a.plays.filter((p) => p.periodDescriptor && a.P[p.periodDescriptor.number] && (!kinds || kinds.includes(p.typeDescKey)));
+    // newly arrived plays go in above; keep the reader's place unless they're at the top
+    const st = pane.scrollTop, h = pane.scrollHeight;
+    pane.textContent = "";
+    if (!plays.length) { pane.append(elt("p", "empty", a.plays.length ? "None of these yet." : "Plays show here once the puck drops.")); return; }
+    if (vw.rewound) pane.append(elt("p", "hint asof", "As of " + ord(vw.n, a.P[vw.n].type) + " " + fmt(a.P[vw.n].len - vw.s) + ". Later plays are faded."));
+    let atRow = null, atKey = null, perNum = null;
+    for (let i = plays.length - 1; i >= 0; i--) {
+      const p = plays[i], n = p.periodDescriptor.number, t = mmss(p.timeInPeriod), k = p.typeDescKey, det = p.details || {};
+      if (n !== perNum) { perNum = n; pane.append(elt("div", "eyebrow evper", ord(n, a.P[n].type) + " period")); }
+      const x = describePlay(a, p, names), col = x.own == null ? "var(--muted)" : x.own ? cH : cA;
+      const future = vw.rewound && !vw.upTo(n, t);
+      const row = elt("div", "evrow" + (k === "goal" ? " goal" : k === "penalty" ? " pen" : "") + (future ? " later" : ""));
+      row.style.setProperty("--tc", col);
+      if (!future && vw.rewound && !atRow) { atRow = row; atKey = p.eventId; row.classList.add("at"); }
+      const go = elt("button", "evgo"); go.type = "button";
+      const time = p.timeRemaining ? clk(p.timeRemaining) : "";
+      go.append(elt("span", "evt", time), elt("b", "evteam", x.team ? x.team.abbrev : ""), elt("span", "evx", x.text));
+      go.title = "Rewind to " + ord(n, a.P[n].type) + " " + time;
+      go.onclick = () => { stopReplay(); setScrub({ n, s: Math.max(1, t) }); };
+      row.append(go);
+      if (det.highlightClipSharingUrl) { const l = elt("a", "evwatch", "▶ Watch"); l.href = det.highlightClipSharingUrl; l.target = "_blank"; l.rel = "noopener"; l.setAttribute("aria-label", "Watch the " + (x.team ? x.team.abbrev + " " : "") + "goal"); row.append(l); }
+      pane.append(row);
+    }
+    pane.scrollTop = evTop ? 0 : st > 0 ? st + pane.scrollHeight - h : 0;
+    evTop = false;
+    // the marked play moved (dragging the chart, replay): bring it into view
+    if (atRow && atKey !== evAtKey) {
+      const pr = pane.getBoundingClientRect(), rr = atRow.getBoundingClientRect(), pad = 40;
+      if (rr.top < pr.top + pad || rr.bottom > pr.bottom) pane.scrollTop += rr.top - pr.top - pad;
+    }
+    evAtKey = atKey;
+  }
+
   /* ---------- stats tabs ---------- */
   const TAB_KEY = "icetilt.tab";
-  const TABS = ["box", "players"];
+  const TABS = ["box", "players", "events"];
   let tab = "box";
   try { const v = localStorage.getItem(TAB_KEY); if (TABS.includes(v)) tab = v; } catch (e) {}
   function setTab(next, focus) {
@@ -1775,7 +1848,9 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       if (on && focus) b.focus();
     });
     $("teamSwitch").hidden = tab !== "players";
+    $("evFilter").hidden = tab !== "events";
     try { localStorage.setItem(TAB_KEY, tab); } catch (e) {}
+    if (tab === "events" && lastA) queueStats(); // the list only draws while it's showing
   }
   TABS.forEach((k, i) => {
     const b = $("tab-" + k);
@@ -2190,11 +2265,9 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
   // the latest play in a few words, like "NJD hit · Hughes on Benn · 9:31"
   const MISS = { "hit-crossbar": "off the crossbar", "hit-left-post": "off the post", "hit-right-post": "off the post", "over-cross-bar": "over the net", "above-crossbar": "over the net", "high-and-wide-left": "high and wide", "high-and-wide-right": "high and wide" };
   const STOP = { "goalie-stopped-after-sog": "goalie froze it", "puck-frozen": "puck frozen", "puck-in-netting": "puck in the netting", "puck-in-crowd": "puck out of play", "puck-in-benches": "puck in the bench", "puck-in-penalty-benches": "puck in the box", "tv-timeout": "TV timeout", "net-dislodged-defensive-skater": "net off", "net-dislodged-offensive-skater": "net off" };
-  function lastPlay(a, cA, cH) {
-    const p = a.plays[a.plays.length - 1];
-    if (!p) return null;
+  // what a play was, as { own: 0 away / 1 home / null, team, text }; the tile line and the Events tab share it
+  function describePlay(a, p, last) {
     const d = a.d, det = p.details || {}, k = p.typeDescKey, words = (x) => (x || "").replace(/-/g, " ");
-    const last = {}; (d.rosterSpots || []).forEach((r) => { last[r.playerId] = r.lastName && r.lastName.default; });
     const who = (id) => last[id] || "";
     // whose play it is: the shooter's team for shots (a blocked shot is logged to the blocking team)
     const shooter = det.shootingPlayerId || det.scoringPlayerId;
@@ -2218,9 +2291,15 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     else if (k === "period-start") what = ord(p.periodDescriptor.number, p.periodDescriptor.periodType) + " under way";
     else if (k === "period-end") what = "End of the " + ord(p.periodDescriptor.number, p.periodDescriptor.periodType);
     else what = words(k).replace(/^./, (c) => c.toUpperCase());
-    const box = elt("span", "tev");
-    if (team) { const t = elt("b", null, team.abbrev); t.style.color = own ? cH : cA; box.append(t, " "); }
-    box.append([what + (more && more.trim() ? " · " + more.trim() : ""), p.timeRemaining && k !== "period-end" ? clk(p.timeRemaining) : ""].filter(Boolean).join(" · "));
+    return { own, team, text: what + (more && more.trim() ? " · " + more.trim() : "") };
+  }
+  const lastNames = (d) => { const m = {}; (d.rosterSpots || []).forEach((r) => { m[r.playerId] = r.lastName && r.lastName.default; }); return m; };
+  function lastPlay(a, cA, cH) {
+    const p = a.plays[a.plays.length - 1];
+    if (!p) return null;
+    const x = describePlay(a, p, lastNames(a.d)), box = elt("span", "tev");
+    if (x.team) { const t = elt("b", null, x.team.abbrev); t.style.color = x.own ? cH : cA; box.append(t, " "); }
+    box.append([x.text, p.timeRemaining && p.typeDescKey !== "period-end" ? clk(p.timeRemaining) : ""].filter(Boolean).join(" · "));
     box.title = box.textContent;
     return box;
   }
