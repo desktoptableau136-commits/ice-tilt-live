@@ -389,10 +389,10 @@ tr.total td { font-weight: 500; border-bottom: none; }
       <article>
         <h3>How to read the number</h3>
         <div class="scale">
-          <div><b>0–9</b><span>Even. Play is trading ends.</span></div>
-          <div><b>10–24</b><span>Leaning. One team is winning more battles.</span></div>
-          <div><b>25–44</b><span>Tilted. Sustained pressure, often after a few won draws or an icing.</span></div>
-          <div><b>45+</b><span>Hemmed in. The defending team can't get it out. Watch for a goal or a tired line.</span></div>
+          <div><b>0–9</b><span>Even. Play is centered around the red line, and both teams are getting time in the other end.</span></div>
+          <div><b>10–24</b><span>Leaning. Play is drifting toward one end, but on average it's still in the neutral zone.</span></div>
+          <div><b>25–44</b><span>Tilted. On average play is at or just past one blue line, often after a few won draws or an icing.</span></div>
+          <div><b>45+</b><span>Dominant. On average play is deep in one zone and the defending team can't get out. Watch for a goal or a tired line.</span></div>
         </div>
         <p>A positive number in the chart favors the team on top of the chart (Team A). The territorial share is the same number shown as a split of the ice: +30 means a 65 / 35 split.</p>
       </article>
@@ -499,7 +499,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     if (a < 10) return "Even";
     if (a < 25) return "Leaning";
     if (a < 45) return "Tilted";
-    return "Hemmed in";
+    return "Dominant";
   }
 
   /* ---------- clock ---------- */
@@ -714,7 +714,7 @@ tr.total td { font-weight: 500; border-bottom: none; }
     const v = Math.abs(t) < 10 ? "Play is even. Neither team is controlling territory."
       : Math.abs(t) < 25 ? lead.name + " are getting more of the play."
       : Math.abs(t) < 45 ? lead.name + " are tilting the ice. Sustained pressure in the " + (lead === A() ? B() : A()).abbr + " end."
-      : lead.name + " have them hemmed in.";
+      : lead.name + " are camped in the " + (lead === A() ? B() : A()).abbr + " end. The " + (lead === A() ? B() : A()).name + " can't get out.";
     $("verdict").textContent = v;
     const shareA = Math.round(50 + t / 2);
     $("shareA").textContent = shareA + "%"; $("shareB").textContent = (100 - shareA) + "%";

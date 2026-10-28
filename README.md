@@ -28,7 +28,7 @@ The same page is hosted on this repo's GitHub Pages site, so you don't need Pyth
 The page opens on every game for the date, as tiles. Click a tile to open that game's dashboard. **All games** in the top bar, or the browser's Back button, returns to the tiles. A link with a game number (like `#2026020180`) opens that game directly.
 
 - **Live** tiles show the score, clock and period, and an intermission countdown during breaks. They also show:
-  - A small rink of the last two minutes, the current 2 min tilt, and the whole-game tilt so far. The rink really tilts, tipping down toward the end that's under pressure (up to 5° when a team is hemmed in).
+  - A small rink of the last two minutes, the current 2 min tilt, and the whole-game tilt so far. The rink really tilts, tipping down toward the end that's under pressure (up to 5° when a team is dominant).
   - A strip of the tilt over the game, with goals and period breaks.
   - Shots, shot attempts and hits. The game with the most of each on that date is marked **most**.
 - **Latest play:** the most recent event in a few words, like "NJD hit · Hughes on Benn · 9:31", with a ring on its dot on the small rink. The tags sit to its right.
@@ -48,7 +48,7 @@ The page opens on every game for the date, as tiles. Click a tile to open that g
 ## What's on the dashboard
 
 - Pick any date and game. Live games refresh every 5 seconds.
-- **Ice Tilt meter:** the official two-minute rolling tilt with a label (Even, Leaning, Tilted, Hemmed in), plus **5 and 10 minute** comparison boxes. The verdict line points out when the short and long windows disagree.
+- **Ice Tilt meter:** the official two-minute rolling tilt with a label (Even, Leaning, Tilted, Dominant), plus **5 and 10 minute** comparison boxes. The verdict line points out when the short and long windows disagree.
 - **Rink:** where the events of the last two minutes happened, in team colors, with a dashed line marking the average position of play over those two minutes.
 - **Score effect:** late in a game, the team that's behind usually pushes while the leader sits back, so the tilt can make the losing team look dominant. When the trailing team is tilting the ice in the 3rd (or the 2nd, down by 2+), the verdict says so and a **Score effect** tag appears. With the goalie pulled it shows **Goalie pulled** instead.
 - **Score-adjusted tilt** (Tilt menu in the top bar, remembered): takes away the push a trailing team usually gets. All 1,312 games of the 2025–26 regular season were run through the same method to find the average tilt for a team down 1, or down 2+, at each minute of regulation. That's subtracted second by second from the meter, the 5/10 min boxes, the chart and the period table. Home ice is averaged out and overtime is unadjusted, since it's always tied. The rink always shows raw position.

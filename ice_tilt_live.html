@@ -656,11 +656,12 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
       </article>
       <article>
         <h3>Reading it</h3>
+        <p>The number is how far the average spot of play sits from center ice toward a goal line: 0 at center, about 28 at the blue line, 100 at the goal line.</p>
         <div class="scale">
-          <div><b>0–9</b><span>Even. Play is trading ends.</span></div>
-          <div><b>10–24</b><span>Leaning. One team is winning more battles.</span></div>
-          <div><b>25–44</b><span>Tilted. Sustained pressure.</span></div>
-          <div><b>45+</b><span>Hemmed in. The defending team can't clear it.</span></div>
+          <div><b>0–9</b><span>Even. Play is centered around the red line, and both teams are getting time in the other end.</span></div>
+          <div><b>10–24</b><span>Leaning. Play is drifting toward one end, but on average it's still in the neutral zone.</span></div>
+          <div><b>25–44</b><span>Tilted. On average play is at or just past one blue line. One team is spending most of its time in the other end.</span></div>
+          <div><b>45+</b><span>Dominant. On average play is deep in one zone. For two minutes the defending team has barely gotten out.</span></div>
         </div>
         <ul>
           <li>The 5 and 10 minute boxes use the same method over longer windows. When a short window disagrees with a long one, a team is pushing against the run of play.</li>
@@ -1018,7 +1019,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     const per = a.curPer;
     return { per, now: per ? per.elapsed : 0, tilt: a.tilt, rewound: false };
   }
-  function label(t) { const a = Math.abs(t); return a < 10 ? "Even" : a < 25 ? "Leaning" : a < 45 ? "Tilted" : "Hemmed in"; }
+  function label(t) { const a = Math.abs(t); return a < 10 ? "Even" : a < 25 ? "Leaning" : a < 45 ? "Tilted" : "Dominant"; }
 
   function render(a) {
     const d = a.d, away = d.awayTeam, home = d.homeTeam;
@@ -1276,7 +1277,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     $("verdict").textContent = !per ? "No events yet." : Math.abs(t) < 10 ? "Play is even. Neither team is controlling territory."
       : Math.abs(t) < 25 ? nm(lead) + " are getting more of the play."
       : Math.abs(t) < 45 ? nm(lead) + " are tilting the ice. Sustained pressure in the " + other.abbrev + " end."
-      : nm(lead) + " have the " + nm(other) + " hemmed in.";
+      : nm(lead) + " are camped in the " + other.abbrev + " end. The " + nm(other) + " can't get out.";
     $("meterL").style.background = cA; $("meterR").style.background = cH;
     $("mlL").textContent = "← " + away.abbrev; $("mlR").textContent = home.abbrev + " →";
     const w = Math.min(50, Math.abs(m.tilt) * 50);
