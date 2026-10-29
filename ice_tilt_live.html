@@ -2587,7 +2587,7 @@ body.home .datebox { margin-left: auto; }
     });
     return { g, snap: { ts: "replay " + n + ":" + s, a: ca, t: tally(ca) }, syncing: false };
   }
-  // goals as the replay reaches them: the tile flashes and, while it's playing, a banner pops up
+  // goals as the replay reaches them flash their tile in the scoring team's color (no banners: too many at once)
   function replayGoals(rows) {
     const now = Date.now();
     rows.forEach(({ g, syncing }) => {
@@ -2600,7 +2600,6 @@ body.home .datebox { margin-left: auto; }
         seen.add(k);
         if (rpQuiet) return;
         rpFlash.set(k, now);
-        if (hTimer) showBanner(g, x);
       });
     });
   }
