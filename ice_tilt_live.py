@@ -107,7 +107,7 @@ def lan_ip():
 
 def main():
     port = next((int(a) for a in sys.argv[1:] if a.isdigit()), 8765)
-    lan = "--local" not in sys.argv  # Wi-Fi devices allowed by default; --lan is still accepted
+    lan = "--local" not in sys.argv  # other devices on the Wi-Fi can connect unless --local
     server = ThreadingHTTPServer(("0.0.0.0" if lan else "127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
     print(f"Ice Tilt Live running at {url}  (Ctrl+C to stop)")
