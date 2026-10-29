@@ -2460,16 +2460,16 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
   }
 
   function renderTicker(rows) {
+    // hidden during Replay all; it comes back with every goal once the replay is over
+    if (hClock) { $("ticker").hidden = true; tickerSig = ""; return; }
     const now = Date.now(), items = [];
     rows.forEach(({ g, syncing }) => {
       if (syncing) return;
       realGoals(g).forEach((x) => {
         const k = goalKey(g, x);
-        // goals seen arriving sort by when they arrived; older ones by a rough guess at the wall clock.
-        // In a replay every game starts together, so they go by the game clock.
+        // goals seen arriving sort by when they arrived; older ones by a rough guess at the wall clock
         const guess = Date.parse(g.startTimeUTC) + (8 * 60 + (x.period - 1) * 38 * 60 + mmss(x.timeInPeriod) * 1.6) * 1000;
-        const at = hClock ? x.period * 1e4 + mmss(x.timeInPeriod) : goalFlash.get(k) || guess;
-        items.push({ g, x, at, fresh: now - (flashes().get(k) || 0) < flashMs() });
+        items.push({ g, x, at: goalFlash.get(k) || guess, fresh: now - (goalFlash.get(k) || 0) < FLASH_MS });
       });
     });
     items.sort((p, q) => q.at - p.at);
