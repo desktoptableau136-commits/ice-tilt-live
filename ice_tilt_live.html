@@ -292,10 +292,17 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
 .homesum b { color: var(--live); font-weight: 600; }
 #homeBtn { flex: none; white-space: nowrap; }
 #home { display: grid; gap: 16px; align-content: start; min-width: 0; }
-.hreplay { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.hreplay[hidden], .hreplay .btn[hidden] { display: none; }
+/* Replay all sits in the top bar, after the date summary */
+.homesum { flex: 0 1 auto; }
+.hreplay { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+/* where the bar can't fit it all, the date controls drop to a second row, still on the right */
+body.home .top { flex-wrap: wrap; }
+body.home .datebox { margin-left: auto; }
+.hreplay[hidden], .hreplay .btn[hidden], body:not(.home) .hreplay { display: none; }
 .hreplay .btn { white-space: nowrap; }
-.hrclock { font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+/* a steady width, so Back to live doesn't shift as the clock runs */
+.hrclock { min-width: 5.2em; font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hrclock:empty { display: none; }
 .ticker { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .ticker .eyebrow { flex: none; }
 .tickrow { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding: 2px 2px 4px; min-width: 0; }
@@ -500,6 +507,12 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     <button class="btn" id="homeBtn" type="button" hidden>&#9638; All games</button>
     <div class="games" id="games" role="group" aria-label="Games"></div>
     <div class="homesum" id="homeSum" hidden></div>
+    <div class="hreplay" id="hReplay" hidden>
+      <button class="btn small" id="hReplayBtn" type="button" title="Replay every game together on one game clock">&#9654; Replay all</button>
+      <button class="btn small speedbtn" id="hSpeedBtn" type="button" title="Replay speed">1&times;</button>
+      <span class="hrclock" id="hrClock" aria-live="off"></span>
+      <button class="btn small" id="hLiveBtn" type="button" hidden>Back to live</button>
+    </div>
     <div class="datebox">
       <button class="btn" id="prevDay" type="button" aria-label="Previous day">←</button>
       <input type="date" id="date" aria-label="Game date">
@@ -528,12 +541,6 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
   <div class="error" id="err" hidden></div>
 
   <section id="home" aria-label="All games" hidden>
-    <div class="hreplay" id="hReplay" hidden>
-      <button class="btn small" id="hReplayBtn" type="button" title="Replay every game together on one game clock">&#9654; Replay all</button>
-      <button class="btn small speedbtn" id="hSpeedBtn" type="button" title="Replay speed">1&times;</button>
-      <span class="hrclock" id="hrClock" aria-live="off"></span>
-      <button class="btn small" id="hLiveBtn" type="button" hidden>Back to live</button>
-    </div>
     <div class="ticker" id="ticker" hidden><span class="eyebrow">Goals</span><div class="tickrow" id="tickRow"></div></div>
     <section class="hsec" id="secLive" hidden><h2>Live</h2><div class="tiles" id="tilesLive"></div></section>
     <section class="hsec" id="secLater" hidden><h2>Later</h2><div class="tiles later" id="tilesLater"></div></section>
@@ -2601,7 +2608,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     $("hReplay").hidden = !rows.some((r) => r.snap);
     $("hReplayBtn").textContent = hTimer ? PAUSE_LABEL : hClock ? "▶ Resume" : "▶ Replay all";
     $("hLiveBtn").hidden = !hClock;
-    $("hrClock").textContent = hClock ? ord(hClock.n, hClock.n > 3 ? "OT" : "REG") + " " + fmt(hClock.len - Math.floor(hClock.s)) + (hTimer ? "" : " · Paused") : "";
+    $("hrClock").textContent = hClock ? ord(hClock.n, hClock.n > 3 ? "OT" : "REG") + " " + fmt(hClock.len - Math.floor(hClock.s)) : "";
   }
   const replayGames = () => scoreRows().map((r) => !r.syncing && homeSnap(r.g.id)).filter(Boolean).map((x) => x.a);
   const periodLen = (as, n) => Math.max(0, ...as.filter((a) => a.P[n]).map((a) => a.P[n].len));
