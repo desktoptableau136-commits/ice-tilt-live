@@ -55,7 +55,7 @@ The page opens on every game for the date, as tiles. Click a tile to open that g
 - **Replay follows everywhere:** when you rewind or replay, the scoreboard, period table, box score and player stats all show the game as of that moment. They're rebuilt from the play-by-play, with ice time and +/− from the NHL shift charts.
 - **Tilt over the game:** a timeline of the 2 min tilt (shaded) with 5 min (solid) and 10 min (dashed) lines you can toggle, plus goals, power plays (PP) and pulled-goalie stretches (EN). EN is the extra-attacker advantage. It's read from the feed's on-ice situation, and brief pulls for a delayed penalty are left out.
   - Hover a goal for the scorer, assists, strength, score and the tilt just before it. Click it to open the NHL highlight video.
-  - Drag across the chart, or use the arrow keys, to rewind. **Replay** plays the whole game back.
+  - Drag across the chart, or use the arrow keys, to rewind. **Replay** plays the whole game back; the button beside it sets the speed (1×, 2× or 3×; a full game takes about 2 minutes, 1 minute or 40 seconds).
 - **Team logos** on the scoreboard, game list, tilt meter and at center ice. Goal hovers show the **scorer's headshot**. Both come from the NHL's own image server.
 - **By period** (under the Ice Tilt meter): average tilt, offensive-zone events, shots and goals for each period.
 - **Stats column** (full height on the right) has three tabs. Your choice is remembered.

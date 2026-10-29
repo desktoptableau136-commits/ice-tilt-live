@@ -157,7 +157,11 @@ th .tblogo { width: 20px; height: 20px; }
 .btn.small { padding: 3px 10px; font-size: 13px; }
 .panel-head .btn.small { margin-left: auto; }
 .panel-head .hint + .btn.small { margin-left: 0; }
+.panel-head .btn.small + .btn.small { margin-left: 0; }
+#speedBtn { min-width: 3.2em; font-variant-numeric: tabular-nums; }
 .scrubbing #rink, .scrubbing .meter .fill { transition: none; }
+/* dragging along the timeline shouldn't highlight the page's text */
+#chart, .scrubbing, .scrubbing * { -webkit-user-select: none; user-select: none; }
 #meterMode.rewind { color: var(--focus); }
 #chart { display: block; width: 100%; }
 .tip { position: fixed; z-index: 20; pointer-events: none; background: var(--surface); border: 1px solid var(--boards); border-radius: 8px; padding: 8px 12px; font-size: 13px; line-height: 1.45; width: max-content; max-width: 280px; box-shadow: 0 8px 28px rgba(0,0,0,.25); display: grid; gap: 1px; }
@@ -618,6 +622,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
         <button class="ltog" id="tog600" type="button" aria-pressed="true"><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>10 min</button>
       </span>
       <button class="btn small" id="replayBtn" type="button" title="Replay the game">&#9654; Replay</button>
+      <button class="btn small" id="speedBtn" type="button" title="Replay speed">1&times;</button>
     </div>
     <div id="chartbox"><svg id="chart" tabindex="0" aria-label="Ice Tilt timeline. Drag, or use the arrow keys, to rewind. Escape returns to live."></svg><div class="tip" id="tip" role="tooltip" hidden></div></div>
   </section>
@@ -1874,6 +1879,7 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
     if (!geo || !lastA || e.button > 0) return;
     stopReplay();
     dragging = true; document.body.classList.add("scrubbing");
+    window.getSelection()?.removeAllRanges();
     setScrub(toMoment(gsecAt(e.clientX)));
   });
   window.addEventListener("pointermove", (e) => { if (dragging) setScrub(toMoment(gsecAt(e.clientX))); });
@@ -1890,29 +1896,45 @@ body.home .board, body.home .main, body.home .chartpanel, body.home .tablepanel,
   });
   $("backLive").onclick = goLive;
 
-  // replay: one period in about 40 seconds
-  const REPLAY_STEP = 3;
+  // replay: 30 game seconds per real second at 1x, so a period takes 40 s at 1x, 20 s at 2x, 13 s at 3x.
+  // It moves by the real time since the last tick, so a slow render doesn't slow the replay down.
+  const REPLAY_RATE = 30, SPEEDS = [1, 2, 3], SPEED_KEY = "icetilt.speed";
+  let speed = 1, replayPos = 0, replayAt = 0;
+  try { const v = +localStorage.getItem(SPEED_KEY); if (SPEEDS.includes(v)) speed = v; } catch (e) {}
+  const showSpeed = () => { $("speedBtn").textContent = speed + "×"; $("speedBtn").setAttribute("aria-label", "Replay speed " + speed + "×"); };
+  showSpeed();
+  $("speedBtn").onclick = () => {
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    try { localStorage.setItem(SPEED_KEY, String(speed)); } catch (e) {}
+    showSpeed();
+  };
   const PLAY_LABEL = "▶ Replay", PAUSE_LABEL = "❚❚ Pause";
   function stopReplay() { if (playing) { clearInterval(playing); playing = null; queueStats(); } $("replayBtn").textContent = PLAY_LABEL; }
   $("replayBtn").onclick = () => {
     if (!geo || !lastA) return;
     if (playing) { stopReplay(); renderStatus(); return; }
     let g = scrub ? toGlobal(scrub) : 0;
-    if (g >= liveEndGlobal() - REPLAY_STEP) g = 0;
+    if (g >= liveEndGlobal() - 3) g = 0;
     setScrub(toMoment(g));
     if (!scrub) return;
+    replayPos = toGlobal(scrub); replayAt = performance.now();
     $("replayBtn").textContent = PAUSE_LABEL;
     playing = setInterval(() => {
-      let next = toGlobal(scrub) + REPLAY_STEP;
+      const now = performance.now();
+      replayPos += Math.min(1, (now - replayAt) / 1000) * REPLAY_RATE * speed;
+      replayAt = now;
       const per = lastA.P[scrub.n];
       // at the end of a period, jump to the start of the next one
-      if (scrub.s >= per.elapsed) {
-        const later = lastA.nums.filter((n) => n > scrub.n && lastA.P[n].roll.length);
-        if (!later.length) { goLive(); return; }
-        next = geo.starts[later[0]] + 1;
+      if (replayPos >= geo.starts[scrub.n] + per.elapsed) {
+        if (scrub.s < per.elapsed) replayPos = geo.starts[scrub.n] + per.elapsed;
+        else {
+          const later = lastA.nums.filter((n) => n > scrub.n && lastA.P[n].roll.length);
+          if (!later.length) { goLive(); return; }
+          replayPos = geo.starts[later[0]] + 1;
+        }
       }
-      if (next >= liveEndGlobal()) { goLive(); return; }
-      setScrub(toMoment(next));
+      if (replayPos >= liveEndGlobal()) { goLive(); return; }
+      setScrub(toMoment(replayPos));
     }, 100);
     renderStatus();
   };
